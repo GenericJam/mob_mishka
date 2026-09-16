@@ -37,13 +37,20 @@ That is the entire setup. No `Components.register_all/0` call in your `on_start/
 
 ## Ejecting a composite for editing
 
-_Ships in MOB-251._
-
 ```
-mix mob_mishka.gen dialog
+mix mob_mishka.gen dialog          # or: mix mob_mishka.gen mishka_dialog
+mix mob_mishka.gen --all           # eject every composite the plugin ships
 ```
 
-Copies `MobMishka.Components.MishkaDialog` into `lib/<your_app>/components/mishka_dialog.ex` as `<YourApp>.Components.MishkaDialog`. The plugin's registry sees the app-local module at boot and prefers it over the plugin's default, so you can edit freely without rewiring anything.
+Copies `MobMishka.Components.MishkaDialog` into `lib/<your_app>/components/mishka_dialog.ex` as `<YourApp>.Components.MishkaDialog`. Activate the ejected copies once (config/config.exs):
+
+```elixir
+config :mob_mishka, :override_namespace, YourApp.Components
+```
+
+`MobMishka.register_all/0` sees the app-local module at boot and prefers it over the plugin's default, so editing your copy takes effect on the next compile with no re-registration. Delete the file to fall back to the plugin's version.
+
+Sibling aliases inside the ejected file still point at the plugin (e.g. `MishkaCloseButton` ejected on its own still calls the plugin's `MishkaActionIcon`). If you also want to edit a sibling, eject it too and fix up the alias by hand.
 
 ## Epic + arc
 

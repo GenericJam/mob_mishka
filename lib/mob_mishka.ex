@@ -29,18 +29,44 @@ defmodule MobMishka do
   Registers every composite this plugin ships with `Mob.Composite`.
 
   Called from the plugin's manifest `:lifecycle.on_start` at boot; you should
-  not need to call it yourself. Idempotent — a second registration for the
-  same tag is a no-op.
+  not need to call it yourself.
 
-  Currently a stub: no composites are ported yet (MOB-249 will fill this in
-  as the port arc lands). Ships as `:ok` so a host adopting the plugin early
-  can still boot cleanly.
+  ## Override precedence (opt-in vendoring — MOB-251)
+
+  If the host app has ejected a composite into its own `lib/` (via `mix
+  mob_mishka.gen <name>`), the user-owned module supersedes the plugin's
+  default for that tag. Enable via `config/config.exs`:
+
+      config :mob_mishka, :override_namespace, MyApp.Components
+
+  On boot, for each `{tag, PluginModule}` in `composites/0`, `register_all/0`
+  looks up `Module.concat(<override_namespace>, short_name(PluginModule))` and
+  registers it if that module is loaded; otherwise it falls back to the
+  plugin's own. So editing a copy in your `lib/` takes effect automatically
+  without touching the plugin.
   """
   @spec register_all() :: :ok
   def register_all do
-    Enum.each(composites(), fn {tag, module} ->
+    namespace = Application.get_env(:mob_mishka, :override_namespace)
+
+    Enum.each(composites(), fn {tag, plugin_module} ->
+      module = pick_module(plugin_module, namespace)
       Mob.Composite.register(tag, {module, :expand})
     end)
+  end
+
+  # No override configured — always use the plugin-shipped composite.
+  defp pick_module(plugin_module, nil), do: plugin_module
+
+  defp pick_module(plugin_module, namespace) do
+    short = plugin_module |> Module.split() |> List.last()
+    override = Module.concat(namespace, short)
+
+    # `ensure_loaded?/1` triggers a lazy load if the module compiled but hasn't
+    # been referenced yet — the composite might live in a file the compiler
+    # hasn't touched at boot time. Fall back to the plugin if the user's
+    # module doesn't exist.
+    if Code.ensure_loaded?(override), do: override, else: plugin_module
   end
 
   @doc """
