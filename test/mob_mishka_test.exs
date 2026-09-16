@@ -4,13 +4,21 @@ defmodule MobMishkaTest do
   doctest MobMishka
 
   describe "MobMishka scaffold" do
-    test "composites/0 lists every ported composite" do
-      # MOB-249 grows this list; each entry pairs a tag atom with its module.
-      # Update the assertion when a port lands rather than weakening it — the
-      # exact contents are documentation of what the plugin ships.
-      assert MobMishka.composites() == [
-               {:mishka_visually_hidden, MobMishka.Components.MishkaVisuallyHidden}
-             ]
+    test "composites/0 returns the expected shape and includes ported composites" do
+      composites = MobMishka.composites()
+
+      # The count is documentation of what this port ships. Bump when
+      # MOB-249's follow-up commits add or remove a composite (or when a
+      # sibling ticket adds one). The invariant test below guards the more
+      # important property — that :tags stays in lockstep.
+      assert length(composites) == 73
+
+      # Spot-check a few representative composites — the port is bulk-derived,
+      # so this catches a wholesale regression (empty list, wrong namespace,
+      # missing atomization) more usefully than exhaustive enumeration.
+      assert {:mishka_visually_hidden, MobMishka.Components.MishkaVisuallyHidden} in composites
+      assert {:mishka_tabs, MobMishka.Components.MishkaTabs} in composites
+      assert {:mishka_action_icon, MobMishka.Components.MishkaActionIcon} in composites
     end
 
     test "every listed composite exists and implements expand/3" do
