@@ -41,6 +41,11 @@ defmodule MobMishka.MixProject do
       # minor; bump the constraint when that lands.
       {:mob, "~> 0.8"},
       {:mob_dev, "~> 0.6", only: [:dev, :test], runtime: false},
+      # MishkaJsonInput.parse/1 uses Jason.decode/1 — the composite ships
+      # a JSON parser (surprising, but Chelekom's json-input is a real
+      # validating editor, not just a textarea). Runtime dep, not a
+      # dev-only one — a consumer app must have it linked.
+      {:jason, "~> 1.4"},
       # Code quality — Credo + ex_slop (AI-pattern checks) + jump_credo_checks,
       # mirroring mob core's pre-commit gate.
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
