@@ -4,17 +4,31 @@ defmodule MobMishkaTest do
   doctest MobMishka
 
   describe "MobMishka scaffold" do
-    test "composites/0 is empty at scaffold time" do
-      # MOB-249 populates as composites port. Update this assertion in that
-      # ticket rather than weakening it — the count is documentation of what
-      # this scaffold does and does not ship.
-      assert MobMishka.composites() == []
+    test "composites/0 lists every ported composite" do
+      # MOB-249 grows this list; each entry pairs a tag atom with its module.
+      # Update the assertion when a port lands rather than weakening it — the
+      # exact contents are documentation of what the plugin ships.
+      assert MobMishka.composites() == [
+               {:mishka_visually_hidden, MobMishka.Components.MishkaVisuallyHidden}
+             ]
     end
 
-    test "register_all/0 returns :ok with no composites to register" do
-      # The registration path must be safe to call at boot even when the
-      # composite list is empty — a host adopting the plugin before any
-      # composite has ported still needs a clean boot.
+    test "every listed composite exists and implements expand/3" do
+      # Guard against a stale entry: composites/0 naming a module that has
+      # been renamed or deleted would boot cleanly but `Mob.Composite`
+      # would fail at first render.
+      for {_tag, module} <- MobMishka.composites() do
+        assert Code.ensure_loaded?(module), "missing composite module: #{inspect(module)}"
+
+        assert function_exported?(module, :expand, 3),
+               "#{inspect(module)} does not implement expand/3"
+      end
+    end
+
+    test "register_all/0 returns :ok" do
+      # Registration must be safe to call at boot regardless of composite
+      # count. Also implicitly verifies `Mob.Composite.register/2` accepts
+      # every `{tag, {module, :expand}}` shape composites/0 hands it.
       assert MobMishka.register_all() == :ok
     end
   end
@@ -30,11 +44,14 @@ defmodule MobMishkaTest do
       assert m.name == :mob_mishka
     end
 
-    test "declares a :tags field (mechanism from MOB-247 in mob)", %{manifest: m} do
-      # The value can be empty today; the presence of the key is what proves
-      # the manifest is shaped for plugin-manifest tag discovery.
-      assert Map.has_key?(m, :tags)
-      assert is_list(m.tags) or is_map(m.tags)
+    test ":tags mirrors composites/0 (every registered composite is whitelisted)", %{manifest: m} do
+      # The two lists must stay in lockstep — a composite registered without
+      # a `:tags` entry warns as pass-through; a `:tags` entry without a
+      # composite whitelists a tag that nothing renders. Compare as sets so
+      # ordering / whitespace inside the ~w() doesn't matter.
+      manifest_tags = MapSet.new(m.tags, &Macro.underscore/1)
+      composite_tags = MapSet.new(MobMishka.composites(), fn {tag, _} -> Atom.to_string(tag) end)
+      assert manifest_tags == composite_tags
     end
 
     test "wires register_all/0 into :lifecycle.on_start", %{manifest: m} do

@@ -46,11 +46,18 @@ defmodule MobMishka do
   @doc """
   Enumerates every `{tag_atom, module}` this plugin registers.
 
-  Empty until MOB-249 starts porting composites from
-  `mishka_chelekom/development/mob`. Kept as a data list so tests and the
-  eventual `mix mob_mishka.gen` task can introspect the set without having
-  to invoke `register_all/0`.
+  Grows in MOB-249 as composites port from
+  `mishka_chelekom/development/mob/lib/mishka_mob/components/`. Kept as a
+  data list so tests and the eventual `mix mob_mishka.gen` task can
+  introspect the set without invoking `register_all/0`.
+
+  Registration order is stable (alphabetical by tag atom) so a rebuild
+  after adding one composite doesn't reshuffle the registry.
   """
   @spec composites() :: [{atom(), module()}]
-  def composites, do: []
+  def composites do
+    [
+      {:mishka_visually_hidden, MobMishka.Components.MishkaVisuallyHidden}
+    ]
+  end
 end
