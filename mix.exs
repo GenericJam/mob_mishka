@@ -2,7 +2,7 @@ defmodule MobMishka.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/GenericJam/mob_mishka"
-  @version "0.0.1"
+  @version "0.1.0"
 
   def project do
     [
@@ -35,11 +35,13 @@ defmodule MobMishka.MixProject do
 
   defp deps do
     [
-      # mob 0.8.x supports `config :mob, :extra_tags` (the app-side escape
-      # hatch this plugin ultimately replaces). Plugin-manifest tag discovery
-      # (MOB-247, this plugin's headline mechanism) ships in the next mob
-      # minor; bump the constraint when that lands.
-      {:mob, "~> 0.8"},
+      # Plugin-manifest tag discovery (MOB-247, this plugin's headline
+      # mechanism) ships in mob 0.9.0. Below that the ~MOB sigil doesn't
+      # union plugin manifest :tags into its whitelist and a consuming app
+      # sees "unknown tag" errors on <MishkaHueSlider> and its 72 siblings
+      # unless the app adds a config :mob, :extra_tags block — the block
+      # this plugin exists to retire.
+      {:mob, "~> 0.9"},
       {:mob_dev, "~> 0.6", only: [:dev, :test], runtime: false},
       # MishkaJsonInput.parse/1 uses Jason.decode/1 — the composite ships
       # a JSON parser (surprising, but Chelekom's json-input is a real
