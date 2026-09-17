@@ -6,14 +6,15 @@ defmodule MobMishka do
   files into every generated app" pattern that `mob_new` uses today. Add it
   to your `mix.exs`:
 
-      {:mob_mishka, "~> 0.0"}
+      {:mob,         "~> 0.9.0"},
+      {:mob_mishka,  "~> 0.1"}
 
   and every `<Mishka…>` composite works in your `~MOB` sigils — no
   `Components.register_all/0` in your `on_start/0`, no `config :mob,
   :extra_tags` block, no editing `deps/mob/priv/tags/*.txt`. The plugin
   registers its composites at boot via its own lifecycle hook, and the sigil's
-  compile-time whitelist reads plugin manifests for tag membership (see
-  MOB-247 in mob).
+  compile-time whitelist reads plugin manifests for tag membership (mob 0.9.0
+  MOB-247).
 
   If you want to edit the source of a specific composite, run
   `mix mob_mishka.gen <name>` (MOB-251) to eject a copy into your

@@ -1,28 +1,30 @@
 # mob_mishka
 
-Mishka Chelekom composites for [Mob](https://github.com/GenericJam/mob) apps, shipped as a proper plugin instead of vendored into every generated app.
+Mishka Chelekom composites for [Mob](https://github.com/GenericJam/mob) apps, shipped as a proper Hex plugin instead of vendored into every generated app.
 
-**Status:** early spike. The scaffold is in place; composites port in [MOB-249](https://linear.app/mobframework/issue/MOB-249). Repository is private during the spike and opens once the core surface stabilises.
+Seventy-three composites — dialogs, tabs, sliders, hue/alpha pickers, semi-circle progress, angle slider, and the rest — that used to live as `.ex` copies inside every `mix mob.new` project now ship from one place, upgrade like any other dep, and stay swappable for users who want to edit their own copy.
 
 ## Why this exists
 
-Today `mob_new` bakes 75+ Mishka composite files into every generated app's `lib/<app>/components/` at generation time. Regenerating an app pulls a fresh snapshot; any user edits to a composite diverge from upstream forever. There is a bespoke `mix mob_new.sync_mishka` task coupling the mob_new archive to Mishka's source, and a `mishka_chelekom` mix task that used to write into `deps/mob/priv/tags/*.txt` to silence sigil warnings.
+Before this plugin, `mob_new` baked 75+ Mishka composite files into every generated app's `lib/<app>/components/` at generation time. Regenerating an app pulled a fresh snapshot; any user edits to a composite diverged from upstream forever. There was a bespoke `mix mob_new.sync_mishka` task coupling the mob_new archive to Mishka's source, and a `mishka_chelekom` mix task that used to write into `deps/mob/priv/tags/*.txt` to silence sigil warnings.
 
 This plugin replaces all three:
 
 - **Composites ship as a Hex dep**, callable directly and expandable via `~MOB` sigil tags. No files copied into your project by default.
-- **Sigil whitelist membership rides the plugin manifest** — see MOB-247 in mob. No `config :mob, :extra_tags` block needed for tags this plugin ships.
-- **`mix mob_mishka.gen <name>`** (MOB-251, planned) opts a specific composite into "copy source into my `lib/` so I can edit it," preserving Mishka's design-system value prop for users who want it — just no longer the default.
+- **Sigil whitelist membership rides the plugin manifest** — see [MOB-247](https://github.com/GenericJam/mob/commit/8bc6c62) in mob. No `config :mob, :extra_tags` block needed for tags this plugin ships.
+- **`mix mob_mishka.gen <name>`** opts a specific composite into "copy source into my `lib/` so I can edit it," preserving Mishka's design-system value prop for users who want it — just no longer the default.
 
 ## Install
+
+Requires mob 0.9.0 or newer (plugin-manifest tag discovery is what lets the sigil compile `<MishkaHueSlider>` and its siblings without an `extra_tags` block).
 
 Add to your Mob app's `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:mob, "~> 0.8"},
-    {:mob_mishka, "~> 0.0"}
+    {:mob,         "~> 0.9.0"},
+    {:mob_mishka,  "~> 0.1"}
   ]
 end
 ```
@@ -33,11 +35,49 @@ Then in `mob.exs`, activate the plugin:
 config :mob, :plugins, [:mob_mishka]
 ```
 
-That is the entire setup. No `Components.register_all/0` call in your `on_start/0`, no `extra_tags` config, no `deps/mob/priv/tags/*.txt` edits.
+That is the entire setup. No `Components.register_all/0` call in your `on_start/0`, no `extra_tags` config, no `deps/mob/priv/tags/*.txt` edits — `MobMishka.register_all/0` runs from the plugin's manifest `:lifecycle.on_start` when your app boots.
+
+## What's in it
+
+Seventy-three composites plus three support modules (`Anchored`, `Color`, `Event`). A few of the more useful ones:
+
+| Composite | What it is |
+|---|---|
+| `<MishkaDialog>` | Modal dialog with confirm/dismiss buttons |
+| `<MishkaTabs>` | Tab bar with selectable panels |
+| `<MishkaAccordion>` | Expand/collapse panels with open-change events |
+| `<MishkaHueSlider>` / `<MishkaAlphaSlider>` | HSL/HSV colour pickers on a canvas |
+| `<MishkaSlider>` | Range slider with snap support |
+| `<MishkaAngleSlider>` | Circular dial for a 0–360° angle |
+| `<MishkaSemiCircleProgress>` | Half-circle gauge |
+| `<MishkaLoadingOverlay>` | Full-screen loading indicator |
+| `<MishkaSeparator>` / `<MishkaSpoiler>` / `<MishkaVisuallyHidden>` | Layout helpers |
+| `<MishkaJsonInput>` | Validating JSON text editor |
+
+Use any of them straight from a screen:
+
+```elixir
+def render(assigns) do
+  ~MOB"""
+  <Column padding={16}>
+    <MishkaSemiCircleProgress value={@battery} label="Battery" />
+    <MishkaAngleSlider value={@angle} on_change={:angle} />
+  </Column>
+  """
+end
+
+def handle_info({:tap, :angle, deg}, socket) do
+  {:noreply, Mob.Socket.assign(socket, :angle, deg)}
+end
+```
+
+The full list of registered tags lives in [`priv/mob_plugin.exs`](priv/mob_plugin.exs) and is the same list `Mob.Composite.expanders/0` returns at runtime.
 
 ## Migrating an existing app
 
-If your app was generated by `mob_new` before it dropped the vendored composites (mob_new 0.5.x), see [MIGRATIONS.md](MIGRATIONS.md). Short version: add the dep, run `mix mob_mishka.migrate` to preview which vendored composite files can be deleted, then `--apply` to make the changes. User-edited copies are preserved.
+If your app was generated by `mob_new` before the vendored composites were dropped (mob_new < 0.6), see [MIGRATIONS.md](MIGRATIONS.md). Short version: add the dep, run `mix mob_mishka.migrate` to preview which vendored composite files can be deleted, then `mix mob_mishka.migrate --apply` to make the changes. User-edited copies are preserved as overrides.
+
+Also strips the compat `config :mob, :extra_tags` block from `config/config.exs` when combined with `--remove-extra-tags`, once your `mob` dep supports plugin-manifest tag discovery (0.9.0+).
 
 ## Ejecting a composite for editing
 
@@ -46,7 +86,7 @@ mix mob_mishka.gen dialog          # or: mix mob_mishka.gen mishka_dialog
 mix mob_mishka.gen --all           # eject every composite the plugin ships
 ```
 
-Copies `MobMishka.Components.MishkaDialog` into `lib/<your_app>/components/mishka_dialog.ex` as `<YourApp>.Components.MishkaDialog`. Activate the ejected copies once (config/config.exs):
+Copies `MobMishka.Components.MishkaDialog` into `lib/<your_app>/components/mishka_dialog.ex` as `<YourApp>.Components.MishkaDialog`. Activate the ejected copies once (`config/config.exs`):
 
 ```elixir
 config :mob_mishka, :override_namespace, YourApp.Components
@@ -56,9 +96,15 @@ config :mob_mishka, :override_namespace, YourApp.Components
 
 Sibling aliases inside the ejected file still point at the plugin (e.g. `MishkaCloseButton` ejected on its own still calls the plugin's `MishkaActionIcon`). If you also want to edit a sibling, eject it too and fix up the alias by hand.
 
-## Epic + arc
+## Design credit
 
-Full context in [MOB-246 Extract Mishka into a mob plugin (mob_mishka)](https://linear.app/mobframework/issue/MOB-246). Seven-child epic covering plugin-manifest tag discovery, this package scaffold, composite port, mix-task move, opt-in vendoring, mob_new template surgery, and migration guide.
+The composites, colour theory, and visual language are Mishka Chelekom's work — see [mishka-group/mishka_chelekom](https://github.com/mishka-group/mishka_chelekom). This plugin is the mob-side surface: the Mob composites drawn from the same design intent, plus the plugin-manifest wiring that makes them ship without vendoring.
+
+The Phoenix/LiveView side of Chelekom is untouched by this — only the mob composites moved. Existing `mishka_chelekom` users see one deprecation cycle on the mob mix tasks that redirect to `mob_mishka`.
+
+## Related
+
+- [MOB-246 epic](https://linear.app/mobframework/issue/MOB-246) — full context for the extraction, plus seven child issues covering plugin-manifest discovery, this scaffold, the composite port, the mix-task move, opt-in vendoring, mob_new template surgery, and the migration guide.
 
 ## License
 

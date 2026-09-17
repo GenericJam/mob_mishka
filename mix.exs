@@ -2,7 +2,7 @@ defmodule MobMishka.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/GenericJam/mob_mishka"
-  @version "0.1.0"
+  @version "0.1.1"
 
   def project do
     [
@@ -16,7 +16,23 @@ defmodule MobMishka.MixProject do
       package: package(),
       docs: [
         main: "readme",
-        extras: ["README.md", "CHANGELOG.md"]
+        extras: [
+          "README.md",
+          "MIGRATIONS.md": [title: "Migrating from vendored composites"],
+          "CHANGELOG.md": [title: "Changelog"]
+        ],
+        source_url: @source_url,
+        source_ref: "master",
+        groups_for_modules: [
+          Composites: [~r/^MobMishka\.Components\.Mishka/],
+          Support: [
+            MobMishka.Components.Anchored,
+            MobMishka.Components.Color,
+            MobMishka.Components.Event
+          ],
+          "Mix Tasks": [~r/^Mix\.Tasks\.MobMishka\./]
+        ],
+        nest_modules_by_prefix: [MobMishka.Components]
       ],
       source_url: @source_url
     ]

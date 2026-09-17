@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ---
 
+## [0.1.1] - 2026-09-17
+
+### Docs
+- README rewritten for the shipped state: install snippet uses the actual pins (`{:mob, "~> 0.9.0"}`, `{:mob_mishka, "~> 0.1"}`), stale "spike" and "planned" callouts replaced with what actually shipped, added a short "what's in it" table with the ten most-used composites and a call-site example.
+- `mix.exs` docs config: MIGRATIONS.md added to `extras`, composite modules grouped under "Composites" via `groups_for_modules`, support modules under "Support", mix tasks under "Mix Tasks", nested by `MobMishka.Components` prefix so the hexdocs sidebar reads at scale.
+- `@moduledoc` on `MobMishka` names the actual mob floor (`~> 0.9.0`) and pin (`~> 0.1`).
+- `AGENTS.md` + `CLAUDE.md` added for AI-agent onboarding. Cover composite anatomy, the `mishka_chelekom` upstream relationship, cross-repo work with mob, worktree discipline, adversarial review, release flow, and physical-device verification for canvas-drawn composites.
+
 ## [0.1.0] - 2026-09-17
 
 Initial Hex release. Plugin-manifest tag discovery landed in mob 0.9.0 (MOB-247), and this ships against it.
