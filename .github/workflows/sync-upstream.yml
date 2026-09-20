@@ -1,0 +1,151 @@
+name: sync-upstream
+
+# Mishka Chelekom's mob composites live upstream in
+# `mishka-group/mishka_chelekom` under `development/mob/lib/mishka_mob/components/`.
+# `mob_mishka` is a downstream fork of that catalog — same 77 files, but with:
+#
+#   1. A namespace rewrite (`MishkaMob.Components.*` → `MobMishka.Components.*`).
+#   2. Local idiom cleanups (e.g. `Map.get(x, :k) || default` normalised to
+#      `Map.get(x, :k, default)`) and trimmed docs.
+#
+# This workflow surfaces upstream drift as a PR — it doesn't force-sync.
+# The PR-reviewer decides which upstream changes are real (new components,
+# real behaviour changes) vs re-introduced idioms that should be dropped.
+#
+# State tracked in `.upstream-sync-sha` at the repo root: the upstream commit
+# the current tree was reconciled against. Bumped by the PR when merged, so
+# each cycle only surfaces the delta since last reconciliation.
+
+on:
+  schedule:
+    # Hourly. Upstream changes rarely, so this is more "eventually catch it"
+    # than "poll aggressively". Drop to daily if the runner-minute cost matters.
+    - cron: '0 * * * *'
+  workflow_dispatch:
+  # Upstream can trigger us directly via a repository_dispatch (Shahryar's own
+  # workflow POSTs to /repos/GenericJam/mob_mishka/dispatches with a
+  # `personal access token` scoped to public_repo). Skip the poll interval.
+  repository_dispatch:
+    types: [upstream-updated]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch upstream + apply component sync
+        id: sync
+        run: |
+          set -euo pipefail
+
+          UPSTREAM_REPO=mishka-group/mishka_chelekom
+          UPSTREAM_BRANCH=master
+          UPSTREAM_PATH=development/mob/lib/mishka_mob/components
+          LOCAL_PATH=lib/mob_mishka/components
+
+          # Sparse-checkout upstream — we only need the components dir.
+          git clone --depth=1 --filter=blob:none --sparse \
+            --branch "$UPSTREAM_BRANCH" \
+            "https://github.com/$UPSTREAM_REPO.git" upstream_src
+          ( cd upstream_src && git sparse-checkout set "$UPSTREAM_PATH" )
+          UPSTREAM_SHA=$(cd upstream_src && git rev-parse HEAD)
+          echo "upstream HEAD: $UPSTREAM_SHA"
+
+          LAST_SYNC=$(tr -d '[:space:]' < .upstream-sync-sha 2>/dev/null || echo "")
+          echo "last sync   : ${LAST_SYNC:-<none>}"
+
+          if [ -n "$LAST_SYNC" ] && [ "$UPSTREAM_SHA" = "$LAST_SYNC" ]; then
+            echo "already at $UPSTREAM_SHA — nothing to sync"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            rm -rf upstream_src
+            exit 0
+          fi
+
+          # Copy every upstream component .ex through the namespace rewrite.
+          # The rewrite is a whole-word substitution on the `MishkaMob.Components`
+          # namespace — no other identifier collides with `MishkaMob` in-tree
+          # (verified by grepping the plugin at workflow-authoring time).
+          mkdir -p "$LOCAL_PATH"
+          for f in upstream_src/$UPSTREAM_PATH/*.ex; do
+            name=$(basename "$f")
+            sed -e 's/MishkaMob\.Components/MobMishka.Components/g' \
+                -e 's/defmodule MishkaMob\b/defmodule MobMishka/g' \
+                -e 's/alias MishkaMob\b/alias MobMishka/g' \
+                -e 's/@moduledoc.*MishkaMob/&/' \
+                "$f" > "$LOCAL_PATH/$name"
+          done
+
+          echo "$UPSTREAM_SHA" > .upstream-sync-sha
+          rm -rf upstream_src
+
+          # If the transformed tree is byte-identical to what was already
+          # committed, there's nothing to propose — just bump the marker.
+          # (Bumping the marker still counts as "changed" because
+          # .upstream-sync-sha itself moved; PR will be a one-line marker bump
+          # which we DO want so the tracker advances.)
+          if git diff --quiet -- "$LOCAL_PATH"; then
+            # Only the marker moved. Emit a marker-only PR so the sync state
+            # is honest about what upstream head we're reconciled to.
+            echo "content unchanged after transform; marker-only PR"
+            echo "changed=marker-only" >> "$GITHUB_OUTPUT"
+          else
+            echo "content diff detected"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "sha=$UPSTREAM_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(echo "$UPSTREAM_SHA" | cut -c1-8)" >> "$GITHUB_OUTPUT"
+
+          # Also emit the upstream commit range for the PR body.
+          if [ -n "$LAST_SYNC" ]; then
+            echo "range=${LAST_SYNC:0:8}..${UPSTREAM_SHA:0:8}" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=(initial sync)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open / update PR
+        if: steps.sync.outputs.changed != 'false'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: sync/upstream-mishka
+          delete-branch: true
+          title: "sync(mishka): pull upstream ${{ steps.sync.outputs.short_sha }}"
+          commit-message: "sync(mishka): upstream ${{ steps.sync.outputs.short_sha }}"
+          add-paths: |
+            lib/mob_mishka/components/**
+            .upstream-sync-sha
+          body: |
+            Automated sync from
+            [mishka-group/mishka_chelekom@${{ steps.sync.outputs.short_sha }}](https://github.com/mishka-group/mishka_chelekom/tree/${{ steps.sync.outputs.sha }}/development/mob/lib/mishka_mob/components)
+            covering upstream range **${{ steps.sync.outputs.range }}**.
+
+            **What happened**
+            - Sparse-cloned upstream's `development/mob/lib/mishka_mob/components/`.
+            - Applied namespace rewrite `MishkaMob.Components.*` → `MobMishka.Components.*`.
+            - Wrote each transformed `.ex` into `lib/mob_mishka/components/`.
+            - Bumped `.upstream-sync-sha` to the new upstream HEAD.
+
+            **How to review**
+            - **Real upstream changes** (new components, real behaviour changes, bug
+              fixes): keep them.
+            - **Re-introduced idioms** that mob_mishka has previously normalised
+              — e.g. `Map.get(x, :k) || default` where mob_mishka uses
+              `Map.get(x, :k, default)`, or verbose moduledoc blocks that
+              mob_mishka has trimmed — drop those hunks from this PR before
+              merging. `git checkout HEAD -- <file>` per file, or edit the diff
+              in the GitHub PR UI.
+            - Once merged, `.upstream-sync-sha` advances so the next sync
+              starts from THIS commit's range end.
+
+            **Type**: ${{ steps.sync.outputs.changed == 'marker-only' && 'marker-only (no component content changed)' || 'component changes' }}
+
+            Triggered by: `${{ github.event_name }}`.
