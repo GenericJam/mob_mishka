@@ -957,6 +957,8 @@ defmodule MobMishka.Components.MishkaDrawer do
   # the drawer looks completely dead while the arithmetic is fine. Strings are
   # accepted too, because a payload that has crossed a wire may be either.
   defp phase(payload) do
+    # Gesture payloads arrive atom-keyed in-process or string-keyed after crossing the wire.
+    # credo:disable-for-next-line ExSlop.Check.Warning.DualKeyAccess
     case payload[:phase] || payload["phase"] do
       p when p in [:began, "began"] -> :began
       p when p in [:ended, "ended"] -> :ended

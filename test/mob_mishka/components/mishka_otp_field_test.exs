@@ -46,8 +46,8 @@ defmodule MobMishka.Components.MishkaOtpFieldTest do
       tree = MishkaOtpField.otp_field(value: "12", length: 6)
       slots = tree |> find_all(:box) |> Enum.filter(&(&1.props[:height] == 48))
 
-      assert length(slots) == 6
-      assert length(find_all(tree, :text_field)) == 1
+      assert [_, _, _, _, _, _] = slots
+      assert [_] = find_all(tree, :text_field)
     end
 
     test "filled slots show their digit and take the accent border" do

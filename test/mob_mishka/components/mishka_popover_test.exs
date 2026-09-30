@@ -141,7 +141,7 @@ defmodule MobMishka.Components.MishkaPopoverTest do
 
       assert text(node_with_id(one, "p-trigger-closed")) =~ "⧉"
       # two glyphs plus the chevron
-      assert length(find_all(node_with_id(many, "p-trigger-closed"), :text)) == 3
+      assert [_, _, _] = find_all(node_with_id(many, "p-trigger-closed"), :text)
     end
 
     test "the chevron is droppable" do
@@ -243,7 +243,7 @@ defmodule MobMishka.Components.MishkaPopoverTest do
       for side <- [:top, :right, :bottom, :left] do
         node = anchored(open(%{id: "p", trigger: "Go", side: side}))
 
-        assert length(node.children) == 2
+        assert [_, _] = node.children
 
         assert hd(node.children).props.id == "p-trigger-open",
                "#{side} did not anchor the trigger"
@@ -319,7 +319,7 @@ defmodule MobMishka.Components.MishkaPopoverTest do
     test "a closed popover still anchors, so the trigger keeps its place" do
       node = anchored(closed(%{id: "p", trigger: "Go"}))
 
-      assert length(node.children) == 1
+      assert [_] = node.children
       assert hd(node.children).props.id == "p-trigger-closed"
     end
 

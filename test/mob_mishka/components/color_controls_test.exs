@@ -339,7 +339,7 @@ defmodule MobMishka.Components.ColorControlsTest do
 
       # Both the swatch and the ▾ trigger. The swatch is the most colour-like
       # thing on the row, so it is what a finger reaches for first.
-      assert length(taps) == 2
+      assert [_, _] = taps
       assert Enum.all?(taps, &(&1 == {self(), :open}))
     end
 

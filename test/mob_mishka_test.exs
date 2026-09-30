@@ -11,7 +11,7 @@ defmodule MobMishkaTest do
       # MOB-249's follow-up commits add or remove a composite (or when a
       # sibling ticket adds one). The invariant test below guards the more
       # important property — that :tags stays in lockstep.
-      assert length(composites) == 73
+      assert Enum.count(composites) == 73
 
       # Spot-check a few representative composites — the port is bulk-derived,
       # so this catches a wholesale regression (empty list, wrong namespace,

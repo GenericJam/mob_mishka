@@ -49,7 +49,7 @@ defmodule Mix.Tasks.MobMishka.Gen do
     # `mix mob_mishka.gen` reports the expected "Usage:" hint regardless of
     # where it was invoked. Otherwise a user typing it in the wrong project
     # gets the project-guard error and no idea what they actually meant.
-    if !opts[:all] and length(positional) != 1 do
+    if !opts[:all] and not match?([_], positional) do
       Mix.raise("Usage: mix mob_mishka.gen <name> | --all")
     end
 

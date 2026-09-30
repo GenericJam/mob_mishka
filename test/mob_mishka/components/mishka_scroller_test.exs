@@ -62,7 +62,7 @@ defmodule MobMishka.Components.MishkaScrollerTest do
     test "with no handler an arrow still renders, but nothing can fire it" do
       bare = MishkaScroller.scroller(%{id: "g"}, []) |> arrows()
 
-      assert length(bare) == 2
+      assert [_, _] = bare
       assert Enum.all?(bare, &(not Map.has_key?(&1.props, :on_tap)))
 
       # It still says which way it points — an invisible control would be worse
