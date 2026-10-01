@@ -58,7 +58,9 @@ defmodule MobMishka.MixProject do
       # unless the app adds a config :mob, :extra_tags block — the block
       # this plugin exists to retire.
       {:mob, "~> 0.9"},
-      {:mob_dev, "~> 0.6", only: [:dev, :test], runtime: false},
+      # 0.7.2+ signs v2 envelopes; mob_dev hosts refuse the v1 envelope
+      # earlier versions write, so CI's `mix mob.plugin.sign` needs this floor.
+      {:mob_dev, "~> 0.7.2", only: [:dev, :test], runtime: false},
       # MishkaJsonInput.parse/1 uses Jason.decode/1 — the composite ships
       # a JSON parser (surprising, but Chelekom's json-input is a real
       # validating editor, not just a textarea). Runtime dep, not a
