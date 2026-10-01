@@ -2,7 +2,7 @@ defmodule MobMishka.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/GenericJam/mob_mishka"
-  @version "0.1.1"
+  @version "0.1.2"
 
   def project do
     [
@@ -77,9 +77,9 @@ defmodule MobMishka.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      # Ship the manifest + priv/ (holds the plugin manifest .exs; will hold
-      # native assets if any composite later needs them). No `src/` — this is
-      # a pure-Elixir composite plugin.
+      # Ship priv/: the plugin manifest .exs plus mob_plugin.pub and the
+      # mob_plugin.sig the release workflow regenerates before publish. No
+      # `src/` — this is a pure-Elixir composite plugin.
       files: ~w(lib priv mix.exs README* CHANGELOG* LICENSE*)
     ]
   end
