@@ -71,7 +71,7 @@ defmodule MobMishka.Components.MishkaHighlight do
     parts =
       props
       |> Map.get(:text, "")
-      |> split(Map.get(props, :highlight, []),
+      |> split(Map.get(props, :highlight) || [],
         case_sensitive: Map.get(props, :case_sensitive, false)
       )
 
@@ -82,8 +82,8 @@ defmodule MobMishka.Components.MishkaHighlight do
   end
 
   defp line(parts, props) do
-    size = Map.get(props, :text_size, :base)
-    plain = Map.get(props, :text_color, :on_surface)
+    size = Map.get(props, :text_size) || :base
+    plain = Map.get(props, :text_color) || :on_surface
     nodes = Enum.map(parts, &part(&1, props, size, plain))
 
     ~MOB"<Row>
@@ -92,7 +92,7 @@ defmodule MobMishka.Components.MishkaHighlight do
   end
 
   defp lines(parts, budget, props) do
-    space = Map.get(props, :line_space, 4)
+    space = Map.get(props, :line_space) || 4
 
     rows =
       parts
@@ -149,10 +149,12 @@ defmodule MobMishka.Components.MishkaHighlight do
       splitter
       |> Regex.split(text, include_captures: true, trim: false)
       |> Enum.reject(&(&1 == ""))
-      |> Enum.map(fn run ->
-        if Regex.match?(whole, run), do: {:mark, run}, else: {:text, run}
-      end)
+      |> Enum.map(&classify(&1, whole))
     end
+  end
+
+  defp classify(run, whole) do
+    if Regex.match?(whole, run), do: {:mark, run}, else: {:text, run}
   end
 
   @doc """
@@ -199,8 +201,8 @@ defmodule MobMishka.Components.MishkaHighlight do
     MishkaMark.mark(
       text: run,
       text_size: size,
-      background: Map.get(props, :background, MishkaMark.default_fill()),
-      color: Map.get(props, :color, MishkaMark.default_ink())
+      background: Map.get(props, :background) || MishkaMark.default_fill(),
+      color: Map.get(props, :color) || MishkaMark.default_ink()
     )
   end
 

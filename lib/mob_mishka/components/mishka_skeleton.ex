@@ -30,9 +30,12 @@ defmodule MobMishka.Components.MishkaSkeleton do
   `MobMishka.Components.MishkaLoadingOverlay` already animate for free.
 
   (There is no animation plugin to reach for either: the `mob_*` packages
-  published as of mob 0.7 are capabilities — camera, location, biometric,
+  published as of mob 0.9 are capabilities — camera, location, biometric,
   scanner, bluetooth, nfc, vision, video, notify, photos, touch, screencast,
-  background, audio_capture — plus `mob_themes`, `mob_ash` and `mob_push`.)
+  background, audio_capture, sensors, speech, whisper, sms, midi, wake — plus
+  `mob_themes`, `mob_ash`, `mob_push`, `mob_deliver`, `mob_mishka`, and engines
+  for 3D scenes, physics and on-device ML: `mob_scene3d`, `mob_rapier`,
+  `mob_nx_eigen`.)
 
   ## Shapes
 
@@ -94,7 +97,7 @@ defmodule MobMishka.Components.MishkaSkeleton do
   def skeleton(props \\ %{}) do
     props = Map.new(props)
 
-    case Map.get(props, :shape, :block) do
+    case Map.get(props, :shape) || :block do
       :text -> text_lines(props)
       :circle -> circle(props)
       _block -> block(props)
@@ -133,17 +136,17 @@ defmodule MobMishka.Components.MishkaSkeleton do
   end
 
   defp text_lines(props) do
-    height = Map.get(props, :height, @text_height)
-    gap = Map.get(props, :gap, 8)
-    color = Map.get(props, :color, :surface_raised)
-    radius = Map.get(props, :corner_radius, :radius_pill)
+    height = Map.get(props, :height) || @text_height
+    gap = Map.get(props, :gap) || 8
+    color = Map.get(props, :color) || :surface_raised
+    radius = Map.get(props, :corner_radius) || :radius_pill
 
     id = Map.get(props, :id)
 
     bars =
       props
       |> Map.get(:lines, 3)
-      |> shares(Map.get(props, :last_line, 0.6))
+      |> shares(Map.get(props, :last_line) || 0.6)
       |> Enum.with_index()
       |> Enum.map(fn {share, i} ->
         share |> bar(height, color, radius) |> tag_bar(id, i)
@@ -223,9 +226,9 @@ defmodule MobMishka.Components.MishkaSkeleton do
   defp filler(height), do: ~MOB(<Spacer size={height} />)
 
   defp circle(props) do
-    size = Map.get(props, :size, @circle)
-    color = Map.get(props, :color, :surface_raised)
-    radius = Map.get(props, :corner_radius, size / 2)
+    size = Map.get(props, :size) || @circle
+    color = Map.get(props, :color) || :surface_raised
+    radius = Map.get(props, :corner_radius) || size / 2
 
     ~MOB"""
     <Box width={size} height={size} background={color} corner_radius={radius} fill_width={false} />
@@ -234,9 +237,9 @@ defmodule MobMishka.Components.MishkaSkeleton do
   end
 
   defp block(props) do
-    height = Map.get(props, :height, @block_height)
-    color = Map.get(props, :color, :surface_raised)
-    radius = Map.get(props, :corner_radius, :radius_md)
+    height = Map.get(props, :height) || @block_height
+    color = Map.get(props, :color) || :surface_raised
+    radius = Map.get(props, :corner_radius) || :radius_md
 
     case Map.get(props, :width) do
       nil ->

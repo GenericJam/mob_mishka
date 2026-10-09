@@ -234,9 +234,10 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
   @spec drag(map(), map() | nil, map() | keyword()) :: {{number(), number()}, map() | nil}
   def drag(payload, grab, props \\ %{}) do
     props = Map.new(props)
-    at = point(payload)
+    %{phase: phase, x: x, y: y} = Event.drag(payload)
+    at = {x, y}
 
-    case phase(payload) do
+    case phase do
       :began -> {position(props), take_hold(at, props)}
       :dragging -> {follow(at, grab, props), grab}
       :ended -> {follow(at, grab, props), nil}
@@ -275,7 +276,7 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
   def nudge(props, direction) do
     props = Map.new(props)
     {x, y} = position(props)
-    step = Map.get(props, :step, @step)
+    step = Map.get(props, :step) || @step
 
     moved =
       case direction do
@@ -375,6 +376,23 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
     dragging? = dragging?(props)
     strip = if dragging?, do: :primary, else: :surface_raised
 
+    # Both test tags go on through `tag/2` rather than being interpolated: a
+    # window with no `id` derives nil part ids, an inline `id={nil}` still lands
+    # in the props map, and `:json` encodes an atom as a string — so every
+    # untagged window used to reach the bridge carrying the testTag "nil".
+    bar =
+      ~MOB"""
+      <Box width={w} height={handle} background={strip} align={:leading}>
+        <Row fill_width={true} align={:center}>
+          <Box width={gutter} />
+          <Box width={title_width(props)}>
+            {title(props, dragging?)}
+          </Box>
+        </Row>
+      </Box>
+      """
+      |> tag(handle_id(id, dragging?))
+
     ~MOB"""
     <Box
       offset_x={x}
@@ -385,24 +403,11 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
       corner_radius={:radius_md}
       border_color={:border}
       border_width={1}
-      id={part_id(id, :window)}
     >
-      <Box
-        width={w}
-        height={handle}
-        background={strip}
-        align={:leading}
-        id={handle_id(id, dragging?)}
-      >
-        <Row fill_width={true} align={:center}>
-          <Box width={gutter} />
-          <Box width={title_width(props)}>
-            {title(props, dragging?)}
-          </Box>
-        </Row>
-      </Box>
+      {bar}
     </Box>
     """
+    |> tag(part_id(id, :window))
   end
 
   # The title stops where the ✕ starts. The ✕ is a layer-3 overlay at a computed
@@ -481,13 +486,13 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
       offset_y={y + chrome}
       width={width(props)}
       height={max(height(props) - chrome, 0)}
-      id={part_id(Map.get(props, :id), :body)}
     >
       <Column fill_width={true} padding={:space_md}>
         {children}
       </Column>
     </Box>
     """
+    |> tag(part_id(Map.get(props, :id), :body))
   end
 
   defp close(props) do
@@ -507,11 +512,11 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
           height={touch}
           align={:center}
           on_tap={handler}
-          id={part_id(Map.get(props, :id), :close)}
         >
           <Text text="✕" text_size={:sm} text_color={:muted} />
         </Box>
         """
+        |> tag(part_id(Map.get(props, :id), :close))
     end
   end
 
@@ -535,11 +540,11 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
           height={touch}
           align={:center}
           on_tap={Event.handler(Map.get(props, :on_move), direction)}
-          id={part_id(id, {:nudge, direction})}
         >
           <Text text={glyph} text_size={:sm} text_color={:muted} />
         </Box>
         """
+        |> tag(part_id(id, {:nudge, direction}))
       end)
     else
       []
@@ -574,32 +579,11 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
     end
   end
 
-  # The NIF sends `phase` as an ATOM (:began / :dragging / :ended). Comparing it
-  # against "began" matches nothing and falls through to the :dragging default,
-  # so the anchor is never set and every drag returns the position unchanged —
-  # the window looks completely dead while the arithmetic is fine. Strings are
-  # accepted too, because a payload that has crossed a wire may be either.
-  defp phase(payload) do
-    # Gesture payloads arrive atom-keyed in-process or string-keyed after crossing the wire.
-    # credo:disable-for-next-line ExSlop.Check.Warning.DualKeyAccess
-    case payload[:phase] || payload["phase"] do
-      p when p in [:began, "began"] -> :began
-      p when p in [:ended, "ended"] -> :ended
-      _ -> :dragging
-    end
-  end
-
-  # x/y, never dx/dy: those are cumulative translation on iOS and per-sample
-  # deltas on Android, so a fold built on them drifts on exactly one platform.
-  defp point(payload), do: {coordinate(payload, :x), coordinate(payload, :y)}
-
-  defp coordinate(payload, key), do: (payload[key] || payload[to_string(key)] || 0) * 1.0
-
   # ── Props ──────────────────────────────────────────────────────────────────
 
-  defp position(props), do: {Map.get(props, :x, 0), Map.get(props, :y, 0)}
-  defp width(props), do: Map.get(props, :width, @width)
-  defp height(props), do: Map.get(props, :height, @height)
+  defp position(props), do: {Map.get(props, :x) || 0, Map.get(props, :y) || 0}
+  defp width(props), do: Map.get(props, :width) || @width
+  defp height(props), do: Map.get(props, :height) || @height
 
   defp bounds(props) do
     case Map.get(props, :bounds) do
@@ -611,7 +595,11 @@ defmodule MobMishka.Components.MishkaFloatingWindow do
   defp dragging?(props), do: truthy?(Map.get(props, :dragging, false))
 
   defp nudges?(props) do
-    Map.get(props, :on_move) != nil and truthy?(Map.get(props, :show_nudges, true))
+    # `nil` means "not given", not `false`: `Map.get/3` hands back its default
+    # only when the key is ABSENT, so a keyword-built props map carrying an
+    # unset key as an explicit nil used to read as a deliberate `false`.
+    # Only a real `false` turns this off.
+    Map.get(props, :on_move) != nil and Map.get(props, :show_nudges) != false
   end
 
   defp tag(node, nil), do: node
