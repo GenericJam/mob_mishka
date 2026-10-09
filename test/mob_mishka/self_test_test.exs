@@ -107,7 +107,7 @@ defmodule MobMishka.SelfTestTest do
     end)
 
     assert SelfTest.run(%{platform: :ios, device: :simulator}) == :pass
-    assert_received :registered
+    assert_receive :registered, 1_000
   end
 
   defmodule Broken do
