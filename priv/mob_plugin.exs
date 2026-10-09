@@ -1,8 +1,12 @@
 %{
   name: :mob_mishka,
-  mob_version: "~> 0.8",
+  mob_version: "~> 0.9",
   plugin_spec_version: 1,
   description: "Mishka Chelekom composites for Mob apps — plugin-shipped",
+  # On-device proof for `mix mob.selftest` / mob_ci: every composite registered
+  # with Mob.Composite at boot, and a MishkaSwitch + MishkaProgress tree
+  # expanded into the native widget shape (Mob.Plugin.SelfTest).
+  selftest: MobMishka.SelfTest,
 
   # PascalCase tags this plugin contributes to the `~MOB` sigil whitelist.
   # Grows in MOB-249 as composites port from
