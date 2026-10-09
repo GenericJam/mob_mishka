@@ -9,7 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Added
-- **On-device self-test** (MOB-418). `MobMishka.SelfTest` implements `Mob.Plugin.SelfTest` and is declared in the manifest as `selftest:`. It checks that the lifecycle hook registered every composite with `Mob.Composite` (or the host's ejected override), then expands a `MishkaSwitch` + `MishkaProgress` tree through `Mob.Composite.expand/2` and asserts the native shape: no `:mishka_*` left, a `:toggle` with `value: true` and `on_change: {screen, tag}`, the label as a `:text`, and a `:progress` at `0.4`. Run it with `mix mob.selftest` from a host app (mob_dev 0.7.17). Requires mob 0.9.15; `mob_version` in the manifest is now `~> 0.9`.
+- **On-device self-test** (MOB-418). `MobMishka.SelfTest` implements `Mob.Plugin.SelfTest` and is declared in the manifest as `selftest:`. It checks that the lifecycle hook registered every composite with `Mob.Composite` (or the host's ejected override), waiting for `Mob.Plugins.Supervisor` to finish running the `on_start`s and re-checking for up to 5 s so a run right after a relaunch is not a false failure. It then expands a `MishkaSwitch` + `MishkaProgress` tree through `Mob.Composite.expand/2` and asserts the native shape: no `:mishka_*` left, a `:toggle` with `value: true` and `on_change: {screen, tag}`, the label as a `:text`, and a `:progress` at `0.4`. When the host registered its own ejected copy of either tag, those nodes are expanded with the plugin's module, so a host's edits never fail the plugin's test. Run it with `mix mob.selftest` from a host app (mob_dev 0.7.17). Requires mob 0.9.15; `mob_version` in the manifest is now `~> 0.9`.
 
 ## [0.1.3] - 2026-10-01
 

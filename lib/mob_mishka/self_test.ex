@@ -11,7 +11,12 @@ defmodule MobMishka.SelfTest do
        must be in `Mob.Composite.expanders/0` as `{module, :expand}` (or the
        host's ejected override of it, see `MobMishka.register_all/0`). The
        plugin's `lifecycle.on_start` does that at boot; a missing tag means
-       the host never ran it and every `<Mishka…>` renders as nothing.
+       the host never ran it and every `<Mishka…>` renders as nothing. The
+       runner can call the test right after a relaunch, once the plugin's OTP
+       application is up but possibly before the lifecycle `on_start`s have
+       returned, so the test first waits for `Mob.Plugins.Supervisor` to
+       finish `init/1` (which runs them) and re-checks for up to 5 s before
+       failing.
     2. **Expansion.** A column holding `<MishkaSwitch label="mob_mishka
        self-test" checked on_change={:mob_mishka_selftest} />` and
        `<MishkaProgress value={40} />` goes through `Mob.Composite.expand/2`,
@@ -20,18 +25,73 @@ defmodule MobMishka.SelfTest do
        `on_change` is `{self(), :mob_mishka_selftest}` (the event-target
        widening a tag goes through), the label as a `:text`, and a
        `:progress` with `value: 0.4`. A crashing expander shows up here: the
-       renderer replaces it with an empty column.
+       renderer replaces it with an empty column. When the host registered
+       its own ejected copy for either tag, the test expands those nodes with
+       the plugin's module instead (same event-target widening and context),
+       so a host's edited copy cannot fail the plugin's test.
   """
   @behaviour Mob.Plugin.SelfTest
 
+  alias MobMishka.Components.{MishkaProgress, MishkaSwitch}
+
   @tag :mob_mishka_selftest
   @label "mob_mishka self-test"
+  @boot_wait 5_000
+  @own %{mishka_switch: MishkaSwitch, mishka_progress: MishkaProgress}
 
   @impl true
   def run(_ctx) do
-    with :ok <- check_registered(Mob.Composite.expanders()) do
-      check_tree(Mob.Composite.expand(tree(), self()), self())
+    with :ok <- await_registered(System.monotonic_time(:millisecond) + @boot_wait) do
+      check_tree(expand(tree(), Mob.Composite.expanders(), self()), self())
     end
+  end
+
+  defp await_registered(deadline) do
+    case check_registered(Mob.Composite.expanders()) do
+      :ok ->
+        :ok
+
+      failure ->
+        if System.monotonic_time(:millisecond) < deadline do
+          lifecycle_barrier()
+          Process.sleep(100)
+          await_registered(deadline)
+        else
+          failure
+        end
+    end
+  end
+
+  # A call to the lifecycle supervisor is answered only after its init/1, i.e.
+  # after every plugin's on_start, has returned.
+  defp lifecycle_barrier do
+    if Process.whereis(Mob.Plugins.Supervisor) do
+      _ = Supervisor.count_children(Mob.Plugins.Supervisor)
+    end
+
+    :ok
+  catch
+    :exit, _ -> :ok
+  end
+
+  @doc false
+  # Mob.Composite.expand/2 when both tags map to the plugin's own modules;
+  # with a host override registered, the two nodes are expanded by the
+  # plugin's modules the way Mob.Composite would (widened event targets,
+  # %{screen: pid}), then the result goes through Mob.Composite.expand/2.
+  @spec expand(map(), %{atom() => {module(), atom()}}, pid()) :: term()
+  def expand(%{children: children} = tree, expanders, pid) do
+    if Enum.all?(@own, fn {tag, module} -> expanders[tag] == {module, :expand} end) do
+      Mob.Composite.expand(tree, pid)
+    else
+      own = Enum.map(children, &expand_own(&1, pid))
+      Mob.Composite.expand(%{tree | children: own}, pid)
+    end
+  end
+
+  defp expand_own(%{type: type, props: props, children: children}, pid) do
+    module = Map.fetch!(@own, type)
+    module.expand(Mob.Composite.inject_event_targets(props, pid), children, %{screen: pid})
   end
 
   @doc false

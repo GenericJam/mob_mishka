@@ -86,6 +86,30 @@ defmodule MobMishka.SelfTestTest do
     assert reason =~ "[:mishka_tabs] unexpanded"
   end
 
+  test "a host's ejected, edited MishkaSwitch does not decide the plugin's result" do
+    Application.put_env(:mob_mishka, :override_namespace, __MODULE__.Host)
+    Mob.Composite.register(:mishka_switch, {__MODULE__.Host.MishkaSwitch, :expand})
+
+    # Through the global table the host's copy renders no label row...
+    assert {:fail, _} = expand_and_check()
+    # ...but the self-test expands the plugin's own module and passes.
+    assert SelfTest.run(%{platform: :android, device: :emulator}) == :pass
+  end
+
+  test "composites registered while the test waits (boot race) still pass" do
+    Mob.Composite.reset()
+    parent = self()
+
+    spawn(fn ->
+      Process.sleep(300)
+      MobMishka.register_all()
+      send(parent, :registered)
+    end)
+
+    assert SelfTest.run(%{platform: :ios, device: :simulator}) == :pass
+    assert_received :registered
+  end
+
   defmodule Broken do
     @moduledoc false
     def expand(_props, _children, _ctx), do: raise("boom")
@@ -101,5 +125,12 @@ defmodule MobMishka.SelfTestTest do
     @moduledoc false
     def expand(props, _children, _ctx),
       do: %{type: :progress, props: %{value: props.value}, children: []}
+  end
+
+  defmodule Host.MishkaSwitch do
+    @moduledoc false
+    # A host's edited copy: no label row.
+    def expand(props, _children, _ctx),
+      do: %{type: :toggle, props: %{value: true, on_change: props.on_change}, children: []}
   end
 end
