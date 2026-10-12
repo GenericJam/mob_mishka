@@ -68,7 +68,7 @@ defmodule MobMishka.Components.MishkaDrawer do
 
   ## Usage
 
-  Registered once at boot (see `MobMishka.register_all/0`):
+  Registered once at boot (see `MishkaMob.App.on_start/0`):
 
       Mob.Composite.register(:mishka_drawer, {#{inspect(__MODULE__)}, :expand})
 
@@ -452,9 +452,10 @@ defmodule MobMishka.Components.MishkaDrawer do
           {%{open?: boolean(), snap: number() | nil}, map() | nil}
   def swipe(payload, grab, props \\ %{}) do
     props = Map.new(props)
-    at = coordinate(payload, axis(props))
+    gesture = Event.drag(payload)
+    at = Map.fetch!(gesture, axis(props))
 
-    case phase(payload) do
+    case gesture.phase do
       :began -> {state(props), %{at: at, snap: active_snap(props)}}
       :dragging -> {state(props), grab}
       :ended -> {settle(at, grab, props), nil}
@@ -627,9 +628,13 @@ defmodule MobMishka.Components.MishkaDrawer do
   # governs the outside click — but an inert backdrop still has to ABSORB the
   # tap, or a "modal" drawer would let taps through to the page behind it.
   defp scrim(props, ctx) do
-    if truthy?(Map.get(props, :scrim, true)) do
+    # `nil` means "not given", not `false`: `Map.get/3` hands back its default
+    # only when the key is ABSENT, so a keyword-built props map carrying an
+    # unset key as an explicit nil used to read as a deliberate `false`.
+    # Only a real `false` turns this off.
+    if Map.get(props, :scrim) != false do
       target =
-        if truthy?(Map.get(props, :dismissible, true)) do
+        if Map.get(props, :dismissible) != false do
           handler(props, :on_close, ctx)
         else
           {ctx.screen, @absorb_tag}
@@ -638,7 +643,11 @@ defmodule MobMishka.Components.MishkaDrawer do
       node = %{
         type: :box,
         props:
-          %{fill_width: true, fill_height: true, background: Map.get(props, :scrim_color, @scrim)}
+          %{
+            fill_width: true,
+            fill_height: true,
+            background: Map.get(props, :scrim_color) || @scrim
+          }
           |> maybe_put(:id, part(props, "scrim")),
         children: []
       }
@@ -671,10 +680,10 @@ defmodule MobMishka.Components.MishkaDrawer do
   # resolve) — splicing them in directly is correct.
   defp panel(props, children, footer, ctx) do
     body = body(props, children, footer, ctx)
-    padding = Map.get(props, :padding, :space_lg)
+    padding = Map.get(props, :padding) || :space_lg
 
     skin =
-      %{background: Map.get(props, :background, :surface), on_tap: {ctx.screen, @absorb_tag}}
+      %{background: Map.get(props, :background) || :surface, on_tap: {ctx.screen, @absorb_tag}}
       |> maybe_put(:corner_radius, Map.get(props, :corner_radius))
       |> maybe_put(:id, part(props, "panel"))
 
@@ -721,7 +730,7 @@ defmodule MobMishka.Components.MishkaDrawer do
   # side ONLY when on_close is set (a ✕ with no handler would be a dead
   # control). Returns [] when there is nothing to show.
   defp header(props, ctx) do
-    if truthy?(Map.get(props, :header, true)) do
+    if Map.get(props, :header) != false do
       lead = titles(props)
 
       trail =
@@ -800,7 +809,7 @@ defmodule MobMishka.Components.MishkaDrawer do
   # and its tag must stay stable, so the changing state rides one node out.
   defp handle(props, ctx) do
     if truthy?(Map.get(props, :handle, false)) do
-      ink = Map.get(props, :handle_color, @pill_ink)
+      ink = Map.get(props, :handle_color) || @pill_ink
 
       canvas =
         %{
@@ -915,7 +924,7 @@ defmodule MobMishka.Components.MishkaDrawer do
     # that is — so one arithmetic serves all four sides.
     progress = (at - from) * dismiss_sign(props)
     points = snap_heights(props)
-    threshold = Map.get(props, :threshold, @threshold)
+    threshold = Map.get(props, :threshold) || @threshold
     snap = snap || List.first(points)
 
     cond do
@@ -949,28 +958,6 @@ defmodule MobMishka.Components.MishkaDrawer do
     else
       nearest
     end
-  end
-
-  # The NIF sends `phase` as an ATOM (:began / :dragging / :ended). Comparing it
-  # against "began" matches nothing and falls through to the :dragging default,
-  # so the anchor is never set and every gesture returns the state unchanged —
-  # the drawer looks completely dead while the arithmetic is fine. Strings are
-  # accepted too, because a payload that has crossed a wire may be either.
-  defp phase(payload) do
-    # Gesture payloads arrive atom-keyed in-process or string-keyed after crossing the wire.
-    # credo:disable-for-next-line ExSlop.Check.Warning.DualKeyAccess
-    case payload[:phase] || payload["phase"] do
-      p when p in [:began, "began"] -> :began
-      p when p in [:ended, "ended"] -> :ended
-      _ -> :dragging
-    end
-  end
-
-  # Read x/y only, never dx/dy: on iOS those are cumulative translation and on
-  # Android per-sample deltas, so anything built on them behaves differently on
-  # each platform.
-  defp coordinate(payload, axis) do
-    (payload[axis] || payload[to_string(axis)] || 0) * 1.0
   end
 
   defp axis(props) do
@@ -1040,7 +1027,7 @@ defmodule MobMishka.Components.MishkaDrawer do
   defp open?(props), do: truthy?(Map.get(props, :open, false))
 
   defp side(props) do
-    case Map.get(props, :side, :right) do
+    case Map.get(props, :side) || :right do
       side when side in [:left, :right, :top, :bottom] -> side
       side when side in ["left", "right", "top", "bottom"] -> String.to_existing_atom(side)
       _ -> :right
@@ -1056,7 +1043,7 @@ defmodule MobMishka.Components.MishkaDrawer do
       )
     end
 
-    points = Map.get(props, :snap_points, [])
+    points = Map.get(props, :snap_points) || []
 
     if points != [] and snap_heights(props) == [] do
       Logger.warning(
@@ -1093,7 +1080,7 @@ defmodule MobMishka.Components.MishkaDrawer do
   defp gap(size), do: %{type: :spacer, props: %{size: size}, children: []}
   defp empty, do: %{type: :column, props: %{}, children: []}
 
-  defp size_px(props), do: Map.get(@sizes, Map.get(props, :size, :lg), 320)
+  defp size_px(props), do: Map.get(@sizes, Map.get(props, :size) || :lg, 320)
 
   # The test tag for one part, or nil when the caller gave no id. `nil` as the
   # part name asks for the id itself.

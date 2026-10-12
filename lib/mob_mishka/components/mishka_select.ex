@@ -212,7 +212,7 @@ defmodule MobMishka.Components.MishkaSelect do
   defp trigger(props, labels) do
     disabled? = truthy?(Map.get(props, :disabled, false))
     chosen? = List.wrap(Map.get(props, :value)) != []
-    text = display(Map.get(props, :value), labels, Map.get(props, :placeholder, "Select…"))
+    text = display(Map.get(props, :value), labels, Map.get(props, :placeholder) || "Select…")
 
     color =
       cond do
@@ -262,18 +262,18 @@ defmodule MobMishka.Components.MishkaSelect do
       chosen = List.wrap(Map.get(props, :value))
       id = Map.get(props, :id)
 
-      items =
-        options
-        |> group_runs()
-        |> Enum.flat_map(fn {group, run} ->
-          heading = if is_binary(group), do: [MishkaMenu.label(group)], else: []
-          heading ++ Enum.map(run, &item(&1, chosen, id))
-        end)
+      items = options |> group_runs() |> Enum.flat_map(&group_items(&1, chosen, id))
 
       MishkaMenu.menu(%{open: true, on_select: Map.get(props, :on_select)}, items)
     else
       ~MOB(<Column />)
     end
+  end
+
+  # A named group is introduced by its heading; an ungrouped run is not.
+  defp group_items({group, run}, chosen, select_id) do
+    heading = if is_binary(group), do: [MishkaMenu.label(group)], else: []
+    heading ++ Enum.map(run, &item(&1, chosen, select_id))
   end
 
   defp item(option, chosen, select_id) do
