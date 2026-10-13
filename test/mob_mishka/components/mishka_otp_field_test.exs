@@ -170,12 +170,11 @@ defmodule MobMishka.Components.MishkaOtpFieldTest do
         |> then(& &1.children)
         |> Enum.find(&(&1.type == :row))
         |> Map.get(:children)
-        |> Enum.map(fn
+        |> Enum.map_join(fn
           %{type: :box} -> "[]"
           %{type: :spacer} -> " "
           %{type: :row} = r -> r |> find(:text) |> get_in([Access.key(:props), :text])
         end)
-        |> Enum.join()
       end
 
       # An even split, as the web component does it.

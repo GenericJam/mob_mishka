@@ -175,7 +175,7 @@ defmodule MobMishka.Components.MishkaTabsTest do
       many = for i <- 1..9, do: MishkaTabs.tab(:"t#{i}", "Tab #{i}", panel("body #{i}"))
       tree = MishkaTabs.tabs(%{on_change: :pick}, many)
 
-      assert Enum.count(hd(hd(tree.children).children).children, &(&1.type == :column)) == 9
+      assert Enum.map(triggers(tree), &text/1) == Enum.map(1..9, &"Tab #{&1}")
     end
   end
 

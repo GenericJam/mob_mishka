@@ -260,8 +260,6 @@ defmodule MobMishka.Components.MishkaSelectTest do
     end
   end
 
-  # The gallery page is what SelectTest.kt drives, and every option on it bar
-  # the data-driven card is now written as a tag.
   test "every variant renders" do
     for props <- [%{}, %{open: true}, %{value: :uk}, %{value: [:uk], multiple: true, open: true}] do
       assert_renderable(build(props))

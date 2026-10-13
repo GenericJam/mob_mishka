@@ -15,7 +15,6 @@ defmodule MobMishka.Components.MishkaDialogTest do
 
   defp scrim(tree), do: find(tree, :box, background: @scrim)
   defp tagged(tree, id), do: Enum.find(flatten(tree), &(Map.get(&1.props, :id) == id))
-  defp ids(tree), do: tree |> flatten() |> Enum.map(& &1.props[:id]) |> Enum.reject(&is_nil/1)
 
   describe "closed" do
     test "renders nothing when open is false or absent" do
@@ -357,9 +356,6 @@ defmodule MobMishka.Components.MishkaDialogTest do
     end
   end
 
-  # The gallery page is what DialogTest.kt drives, and it is written in slot
-  # tags — panels, footers and triggers alike. This is where the tag form is
-  # proved through the real composite pass rather than a hand-built child list.
   test "every variant renders" do
     for extra <- [
           %{},

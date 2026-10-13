@@ -307,7 +307,7 @@ defmodule MobMishka.Components.ColorControlsTest do
 
       # A swatch, a hex readout and a slider per axis are all things a SCREEN
       # builds around the picker. The picker is the two canvases.
-      assert tree |> find_all(:canvas) |> length() == 2
+      assert [_, _] = find_all(tree, :canvas)
       refute find(tree, :slider)
       refute tree |> find_all(:text) |> Enum.any?(&String.starts_with?(&1.props.text, "#"))
     end

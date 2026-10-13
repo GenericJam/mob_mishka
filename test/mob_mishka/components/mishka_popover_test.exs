@@ -243,15 +243,15 @@ defmodule MobMishka.Components.MishkaPopoverTest do
       for side <- [:top, :right, :bottom, :left] do
         node = anchored(open(%{id: "p", trigger: "Go", side: side}))
 
-        assert [_, _] = node.children
+        assert [trigger, panel] = node.children
 
-        assert hd(node.children).props.id == "p-trigger-open",
+        assert trigger.props.id == "p-trigger-open",
                "#{side} did not anchor the trigger"
 
         # The panel is always the SECOND child, whatever the side. In flow the
         # sequence had to run backwards for :top and :left, because "above" was
         # expressed by ordering; a floating panel needs no such trick.
-        assert node_with_id(List.last(node.children), "p-panel"),
+        assert node_with_id(panel, "p-panel"),
                "#{side} did not put the panel second"
       end
     end
@@ -319,8 +319,8 @@ defmodule MobMishka.Components.MishkaPopoverTest do
     test "a closed popover still anchors, so the trigger keeps its place" do
       node = anchored(closed(%{id: "p", trigger: "Go"}))
 
-      assert [_] = node.children
-      assert hd(node.children).props.id == "p-trigger-closed"
+      assert [trigger] = node.children
+      assert trigger.props.id == "p-trigger-closed"
     end
 
     test "pinned open with no trigger there is nothing to anchor to" do

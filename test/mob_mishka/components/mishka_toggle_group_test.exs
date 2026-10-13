@@ -220,7 +220,4 @@ defmodule MobMishka.Components.MishkaToggleGroupTest do
       assert_renderable(tree)
     end
   end
-
-  # The gallery page is what ToggleGroupTest.kt drives, and every bar on it is
-  # now written as markup — group props and item tags alike, no builder.
 end

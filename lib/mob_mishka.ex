@@ -159,4 +159,56 @@ defmodule MobMishka do
       {:mishka_visually_hidden, MobMishka.Components.MishkaVisuallyHidden}
     ]
   end
+
+  @doc """
+  Enumerates every slot tag this plugin's composites consume.
+
+  A slot tag is the native analogue of a Chelekom `<:slot>`: a child such as
+  `<MishkaPopoverTrigger>` that its parent composite's `expand/3` matches on
+  `:type` and consumes. It has no module and no expander, so `register_all/0`
+  does not touch it — but `~MOB` still validates it as a tag, so the plugin
+  manifest's `:tags` whitelists it alongside the composites. Mirrors upstream's
+  `@slot_tags` list.
+  """
+  @spec slot_tags() :: [atom()]
+  def slot_tags do
+    [
+      :mishka_accordion_item,
+      :mishka_alert_dialog_action,
+      :mishka_checkbox_group_item,
+      :mishka_dialog_description,
+      :mishka_dialog_footer,
+      :mishka_dialog_title,
+      :mishka_dialog_trigger,
+      :mishka_drawer_footer,
+      :mishka_drawer_trigger,
+      :mishka_empty_state_actions,
+      :mishka_empty_state_indicator,
+      :mishka_floating_window_handle,
+      :mishka_menu_checkbox,
+      :mishka_menu_item,
+      :mishka_menu_label,
+      :mishka_menu_radio,
+      :mishka_menu_separator,
+      :mishka_menu_submenu,
+      :mishka_popover_arrow,
+      :mishka_popover_close,
+      :mishka_popover_description,
+      :mishka_popover_title,
+      :mishka_popover_trigger,
+      :mishka_preview_card_trigger,
+      :mishka_radio_group_option,
+      :mishka_segmented_control_option,
+      :mishka_select_option,
+      :mishka_tab,
+      :mishka_toast_close,
+      :mishka_toast_item,
+      :mishka_toggle_group_item,
+      :mishka_toolbar_button,
+      :mishka_toolbar_input,
+      :mishka_toolbar_link,
+      :mishka_toolbar_separator,
+      :mishka_tree_node
+    ]
+  end
 end

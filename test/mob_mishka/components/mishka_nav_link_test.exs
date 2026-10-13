@@ -545,9 +545,30 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
     end
   end
 
-  # The gallery page is what the device test drives, so the tags it addresses
-  # are pinned here: renaming one on the page breaks this instead of failing on
-  # a device twenty minutes later.
-  # The page is written with composite tags; expand them the way the device does.
-  defp page(view), do: Mob.Composite.expand(tree(view), self())
+  describe "nested nav links as composite tags" do
+    setup do
+      Mob.Composite.reset()
+      MobMishka.register_all()
+      :ok
+    end
+
+    test "nested links can be written as tags, not only built as functions" do
+      # A composite's children reach expand/3 UNEXPANDED, which is what lets a
+      # nav link hold nav links: the parent sees one child and becomes a group,
+      # and the child expands on the pass after.
+      tree = %{
+        type: :mishka_nav_link,
+        props: %{id: "nav-mail", label: "Mail", opened: true},
+        children: [
+          %{type: :mishka_nav_link, props: %{id: "nav-inbox", label: "Inbox"}, children: []}
+        ]
+      }
+
+      expanded = Mob.Composite.expand(tree, self())
+
+      assert "nav-mail-open" in tags(expanded)
+      assert "nav-inbox" in tags(expanded)
+      assert text(expanded) =~ "Inbox"
+    end
+  end
 end

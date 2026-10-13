@@ -307,9 +307,6 @@ defmodule MobMishka.Components.MishkaThemeIconTest do
     end
   end
 
-  # The gallery renders every example into one scrolling column, so a device test
-  # can only tell two of them apart by their tags. These assert the tags exist
-  # and that each one moves for its own reason.
   describe "marquee" do
     defp content, do: [%{type: :text, props: %{text: "ticker"}, children: []}]
 
