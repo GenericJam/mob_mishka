@@ -100,8 +100,10 @@ jobs:
           rm -rf upstream_src
 
           # Files still naming upstream-only modules (the showcase gallery):
-          # their blocks have to go before the PR's tests can pass.
-          LEFTOVER=$(grep -rl 'MishkaMob' "$LOCAL_PATH" "$LOCAL_TEST_PATH" | sort | tr '\n' ' ' || true)
+          # their blocks have to go before the PR's tests can pass. The alias
+          # rewrite above turns `alias MishkaMob.Showcase` into
+          # `alias MobMishka.Showcase`, so look for both spellings.
+          LEFTOVER=$(grep -rlE 'MishkaMob|MobMishka\.Showcase' "$LOCAL_PATH" "$LOCAL_TEST_PATH" | sort | tr '\n' ' ' || true)
           echo "leftover=${LEFTOVER:-none}" >> "$GITHUB_OUTPUT"
 
           # If the transformed tree is byte-identical to what was already

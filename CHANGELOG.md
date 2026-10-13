@@ -16,7 +16,8 @@ three Aug 20 commits below never reached mob_mishka.
 - **Callers can supply the look these components hardcoded** (upstream 032cc52). All optional; the defaults draw exactly what 0.1.4 drew.
   - `MishkaChip`: `height`, `width`, `padding_x`/`padding_y`, `corner_radius`, `text_size`, `font_weight`, `max_lines`, a `trailing` slot, and colours for the unchecked and disabled states.
   - `MishkaPill`, `MishkaSegmentedControl`, `MishkaToggle`: height, horizontal padding, radius, text size and weight.
-  - `MishkaActionIcon`, `MishkaThemeIcon`: `shadow`, `border_color`, `border_width`.
+  - `MishkaActionIcon`, `MishkaThemeIcon`: `border_color`, `border_width`, and `shadow`.
+  - **`shadow` doesn't draw yet**, on any component that takes it (action icon, theme icon, pill, segmented control, toggle, and the drawn switch's `thumb_shadow`): the prop reaches the node, but mob's renderers (iOS, and the Android bridge mob_new generates) don't read `shadow`. It's kept for parity with upstream and starts working once mob draws shadows.
   - `MishkaSeparator`: `render: :box` for a filled rule (`:divider` stays the default).
 - **Drawn modes** (upstream ce3e26b): `render: :box` on `MishkaSwitch` (any track/thumb size, with `thumb_offset/4`), `MishkaProgress` and `MishkaMeter` (a declared-width, trackless bar; 0% and 100% both draw). The native primitive stays the default. `MishkaPill` gains `content_align`, `content_fill_width` and a `leading` slot.
 - `MobMishka.slot_tags/0`: the 36 sub-component tags (`<MishkaTab>`, `<MishkaMenuItem>`, `<MishkaPopoverTrigger>`, `<MishkaSelectOption>`, …).
