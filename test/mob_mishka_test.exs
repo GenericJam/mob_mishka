@@ -52,14 +52,18 @@ defmodule MobMishkaTest do
       assert m.name == :mob_mishka
     end
 
-    test ":tags mirrors composites/0 (every registered composite is whitelisted)", %{manifest: m} do
-      # The two lists must stay in lockstep — a composite registered without
-      # a `:tags` entry warns as pass-through; a `:tags` entry without a
-      # composite whitelists a tag that nothing renders. Compare as sets so
-      # ordering / whitespace inside the ~w() doesn't matter.
+    test ":tags is exactly composites/0 plus slot_tags/0", %{manifest: m} do
+      # The lists must stay in lockstep — a composite or slot tag missing from
+      # `:tags` warns as pass-through in every app's ~MOB; a `:tags` entry with
+      # neither a composite nor a consuming parent whitelists a tag that
+      # nothing renders. Compare as sets so ordering inside the ~w() doesn't
+      # matter.
       manifest_tags = MapSet.new(m.tags, &Macro.underscore/1)
       composite_tags = MapSet.new(MobMishka.composites(), fn {tag, _} -> Atom.to_string(tag) end)
-      assert manifest_tags == composite_tags
+      slot_tags = MapSet.new(MobMishka.slot_tags(), &Atom.to_string/1)
+
+      assert MapSet.disjoint?(composite_tags, slot_tags)
+      assert manifest_tags == MapSet.union(composite_tags, slot_tags)
     end
 
     test "wires register_all/0 into :lifecycle.on_start", %{manifest: m} do

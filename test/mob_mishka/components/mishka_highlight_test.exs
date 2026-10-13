@@ -132,10 +132,10 @@ defmodule MobMishka.Components.MishkaHighlightTest do
       sensitive =
         MishkaHighlight.highlight(text: @sentence, highlight: "this", case_sensitive: true)
 
-      assert [_] = find_all(sensitive, :box)
+      insensitive = MishkaHighlight.highlight(text: @sentence, highlight: "this")
 
-      assert [_, _, _] =
-               find_all(MishkaHighlight.highlight(text: @sentence, highlight: "this"), :box)
+      assert [_] = find_all(sensitive, :box)
+      assert [_, _, _] = find_all(insensitive, :box)
     end
   end
 

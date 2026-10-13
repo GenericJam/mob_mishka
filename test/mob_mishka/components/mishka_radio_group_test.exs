@@ -203,9 +203,6 @@ defmodule MobMishka.Components.MishkaRadioGroupTest do
     end
   end
 
-  # The gallery page is what RadioGroupTest.kt drives, and it is now written in
-  # slot tags — so the page is where the tag form is proved end to end, through
-  # the real composite pass rather than a hand-built child list.
   test "expand/3 reads option children and ignores anything else" do
     stray = %{type: :text, props: %{text: "stray"}, children: []}
     tree = MishkaRadioGroup.expand(%{value: :free}, opts() ++ [stray], %{screen: self()})

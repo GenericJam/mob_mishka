@@ -61,8 +61,6 @@ defmodule MobMishka.Components.MishkaTreeTest do
     tree |> flatten() |> Enum.find(&(&1.props[:id] == tag))
   end
 
-  defp page(view), do: Mob.Composite.expand(tree(view), self())
-
   describe "visible/2" do
     test "a collapsed tree is just its roots" do
       assert values(MishkaTree.visible(@nodes, [])) == ["lib", "mix.exs"]

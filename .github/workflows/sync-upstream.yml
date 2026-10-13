@@ -2,15 +2,18 @@ name: sync-upstream
 
 # Mishka Chelekom's mob composites live upstream in
 # `mishka-group/mishka_chelekom` under `development/mob/lib/mishka_mob/components/`.
-# `mob_mishka` is a downstream fork of that catalog — same 77 files, but with:
+# `mob_mishka` is a downstream fork of that catalog — the same components and
+# their tests, with:
 #
 #   1. A namespace rewrite (`MishkaMob.Components.*` → `MobMishka.Components.*`).
-#   2. Local idiom cleanups (e.g. `Map.get(x, :k) || default` normalised to
-#      `Map.get(x, :k, default)`) and trimmed docs.
+#   2. Local cleanups (trimmed docs, credo fixes), and upstream's showcase-gallery
+#      tests left out (mob_mishka doesn't ship the gallery).
 #
 # This workflow surfaces upstream drift as a PR — it doesn't force-sync.
 # The PR-reviewer decides which upstream changes are real (new components,
-# real behaviour changes) vs re-introduced idioms that should be dropped.
+# real behaviour changes) vs re-introduced cleanups that should be dropped.
+# Upstream's `Map.get(props, :k) || default` is NOT one of those: it's a bug
+# fix (an explicit nil otherwise reached the device as the string "nil").
 #
 # State tracked in `.upstream-sync-sha` at the repo root: the upstream commit
 # the current tree was reconciled against. Bumped by the PR when merged, so
@@ -51,12 +54,14 @@ jobs:
           UPSTREAM_BRANCH=master
           UPSTREAM_PATH=development/mob/lib/mishka_mob/components
           LOCAL_PATH=lib/mob_mishka/components
+          UPSTREAM_TEST_PATH=development/mob/test/mishka_mob/components
+          LOCAL_TEST_PATH=test/mob_mishka/components
 
-          # Sparse-checkout upstream — we only need the components dir.
+          # Sparse-checkout upstream — we only need the components and their tests.
           git clone --depth=1 --filter=blob:none --sparse \
             --branch "$UPSTREAM_BRANCH" \
             "https://github.com/$UPSTREAM_REPO.git" upstream_src
-          ( cd upstream_src && git sparse-checkout set "$UPSTREAM_PATH" )
+          ( cd upstream_src && git sparse-checkout set "$UPSTREAM_PATH" "$UPSTREAM_TEST_PATH" )
           UPSTREAM_SHA=$(cd upstream_src && git rev-parse HEAD)
           echo "upstream HEAD: $UPSTREAM_SHA"
 
@@ -70,29 +75,43 @@ jobs:
             exit 0
           fi
 
-          # Copy every upstream component .ex through the namespace rewrite.
-          # The rewrite is a whole-word substitution on the `MishkaMob.Components`
-          # namespace — no other identifier collides with `MishkaMob` in-tree
-          # (verified by grepping the plugin at workflow-authoring time).
-          mkdir -p "$LOCAL_PATH"
-          for f in upstream_src/$UPSTREAM_PATH/*.ex; do
-            name=$(basename "$f")
+          # Copy every upstream component .ex and component test .exs through
+          # the namespace rewrite. The rewrite is a whole-word substitution on
+          # the `MishkaMob.Components` namespace; any other `MishkaMob.*` left
+          # afterwards (upstream's showcase gallery, which mob_mishka doesn't
+          # ship) is listed in the PR body for the reviewer to cut. Tests come
+          # along so a component change never lands without the tests upstream
+          # changed with it.
+          rewrite() {
             sed -e 's/MishkaMob\.Components/MobMishka.Components/g' \
                 -e 's/defmodule MishkaMob\b/defmodule MobMishka/g' \
                 -e 's/alias MishkaMob\b/alias MobMishka/g' \
-                -e 's/@moduledoc.*MishkaMob/&/' \
-                "$f" > "$LOCAL_PATH/$name"
+                "$1" > "$2"
+          }
+          mkdir -p "$LOCAL_PATH" "$LOCAL_TEST_PATH"
+          for f in upstream_src/$UPSTREAM_PATH/*.ex; do
+            rewrite "$f" "$LOCAL_PATH/$(basename "$f")"
+          done
+          for f in upstream_src/$UPSTREAM_TEST_PATH/*.exs; do
+            rewrite "$f" "$LOCAL_TEST_PATH/$(basename "$f")"
           done
 
           echo "$UPSTREAM_SHA" > .upstream-sync-sha
           rm -rf upstream_src
+
+          # Files still naming upstream-only modules (the showcase gallery):
+          # their blocks have to go before the PR's tests can pass. The alias
+          # rewrite above turns `alias MishkaMob.Showcase` into
+          # `alias MobMishka.Showcase`, so look for both spellings.
+          LEFTOVER=$(grep -rlE 'MishkaMob|MobMishka\.Showcase' "$LOCAL_PATH" "$LOCAL_TEST_PATH" | sort | tr '\n' ' ' || true)
+          echo "leftover=${LEFTOVER:-none}" >> "$GITHUB_OUTPUT"
 
           # If the transformed tree is byte-identical to what was already
           # committed, there's nothing to propose — just bump the marker.
           # (Bumping the marker still counts as "changed" because
           # .upstream-sync-sha itself moved; PR will be a one-line marker bump
           # which we DO want so the tracker advances.)
-          if git diff --quiet -- "$LOCAL_PATH"; then
+          if git diff --quiet -- "$LOCAL_PATH" "$LOCAL_TEST_PATH"; then
             # Only the marker moved. Emit a marker-only PR so the sync state
             # is honest about what upstream head we're reconciled to.
             echo "content unchanged after transform; marker-only PR"
@@ -122,6 +141,7 @@ jobs:
           commit-message: "sync(mishka): upstream ${{ steps.sync.outputs.short_sha }}"
           add-paths: |
             lib/mob_mishka/components/**
+            test/mob_mishka/components/**
             .upstream-sync-sha
           body: |
             Automated sync from
@@ -129,20 +149,27 @@ jobs:
             covering upstream range **${{ steps.sync.outputs.range }}**.
 
             **What happened**
-            - Sparse-cloned upstream's `development/mob/lib/mishka_mob/components/`.
+            - Sparse-cloned upstream's `development/mob/lib/mishka_mob/components/` and `development/mob/test/mishka_mob/components/`.
             - Applied namespace rewrite `MishkaMob.Components.*` → `MobMishka.Components.*`.
-            - Wrote each transformed `.ex` into `lib/mob_mishka/components/`.
+            - Wrote each transformed component into `lib/mob_mishka/components/` and each test into `test/mob_mishka/components/`.
             - Bumped `.upstream-sync-sha` to the new upstream HEAD.
 
+            **Still naming upstream-only modules** (cut those blocks, typically showcase-gallery tests): ${{ steps.sync.outputs.leftover }}
+
             **How to review**
-            - **Real upstream changes** (new components, real behaviour changes, bug
-              fixes): keep them.
+            - **Real upstream changes** (new components, props, behaviour changes, bug
+              fixes) and the tests that came with them: keep them.
             - **Re-introduced idioms** that mob_mishka has previously normalised
-              — e.g. `Map.get(x, :k) || default` where mob_mishka uses
-              `Map.get(x, :k, default)`, or verbose moduledoc blocks that
-              mob_mishka has trimmed — drop those hunks from this PR before
-              merging. `git checkout HEAD -- <file>` per file, or edit the diff
-              in the GitHub PR UI.
+              (e.g. long moduledoc blocks it trimmed, credo fixes): revert those
+              *hunks*, not whole files, so no upstream feature is dropped by accident.
+              Not an idiom: upstream reads props as `Map.get(props, :k) || default`
+              on purpose (mishka_chelekom fae9393): with `Map.get/3` an explicit
+              `nil` reached the device as the string "nil".
+            - New sub-component tags (`<MishkaXyz…>`) must be registered in
+              mob_mishka too, or apps' `~MOB` sigils warn "not in the Mob tag whitelist".
+            - A PR opened by this workflow doesn't trigger the `tests` workflow
+              (GitHub's rule for `GITHUB_TOKEN`): run it from the Actions tab, or push
+              a review commit, before merging.
             - Once merged, `.upstream-sync-sha` advances so the next sync
               starts from THIS commit's range end.
 

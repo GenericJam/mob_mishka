@@ -193,7 +193,7 @@ defmodule MobMishka.Components.MishkaCombobox do
     options =
       children |> Enum.filter(&match?(%{type: :mishka_select_option}, &1)) |> Enum.map(& &1.props)
 
-    matches = filter(options, Map.get(props, :query), mode: Map.get(props, :filter, :contains))
+    matches = filter(options, Map.get(props, :query), mode: Map.get(props, :filter) || :contains)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -214,7 +214,7 @@ defmodule MobMishka.Components.MishkaCombobox do
   # block of chips with a field stranded underneath. It only drops to a row of
   # its own when the last chip row is already full.
   defp control(props, options, disabled?) do
-    budget = Map.get(props, :wrap_chars, 34)
+    budget = Map.get(props, :wrap_chars) || 34
     {rows, used} = chip_rows(props, options, disabled?, budget)
     field = field_row(props, disabled?)
 
@@ -226,7 +226,7 @@ defmodule MobMishka.Components.MishkaCombobox do
         rows ->
           {init, [last]} = Enum.split(rows, -1)
           # The field needs room for its placeholder plus the two buttons.
-          cost = String.length(Map.get(props, :placeholder, "Search…") || "") + 8
+          cost = String.length(Map.get(props, :placeholder) || "Search…") + 8
 
           if used + cost <= budget,
             do: init ++ [join(last, field)],
@@ -237,11 +237,11 @@ defmodule MobMishka.Components.MishkaCombobox do
     ~MOB"""
     <Box
       fill_width={true}
-      background={Map.get(props, :background, :surface)}
-      corner_radius={Map.get(props, :corner_radius, :radius_sm)}
-      padding={Map.get(props, :padding, :space_sm)}
-      border_color={Map.get(props, :border_color, :border)}
-      border_width={Map.get(props, :border_width, 1)}
+      background={Map.get(props, :background) || :surface}
+      corner_radius={Map.get(props, :corner_radius) || :radius_sm}
+      padding={Map.get(props, :padding) || :space_sm}
+      border_color={Map.get(props, :border_color) || :border}
+      border_width={Map.get(props, :border_width) || 1}
     >
       <Column fill_width={true}>
         {lines}
@@ -259,7 +259,7 @@ defmodule MobMishka.Components.MishkaCombobox do
       <Box weight={1}>
         {input(props, disabled?)}
       </Box>
-      {button(Map.get(props, :clear_icon, "✕"), :on_clear, props, disabled?,
+      {button(Map.get(props, :clear_icon) || "✕", :on_clear, props, disabled?,
          truthy?(Map.get(props, :clear, false)))}
       {button(trigger_icon(props), :on_toggle, props, disabled?,
          truthy?(Map.get(props, :trigger, false)))}
@@ -276,13 +276,7 @@ defmodule MobMishka.Components.MishkaCombobox do
     chosen = List.wrap(Map.get(props, :value))
 
     if truthy?(Map.get(props, :multiple, false)) and chosen != [] do
-      labels =
-        Enum.map(chosen, fn id ->
-          case Enum.find(options, &(Map.get(&1, :id) == id)) do
-            nil -> {id, to_string(id)}
-            option -> {id, Map.get(option, :label)}
-          end
-        end)
+      labels = Enum.map(chosen, &chosen_label(&1, options))
 
       # Reuse the tags input's packing rule rather than inventing a second one:
       # wrap the LABELS, then cut the {id, label} list to the same row lengths.
@@ -312,6 +306,14 @@ defmodule MobMishka.Components.MishkaCombobox do
     end
   end
 
+  # A chosen id with no matching option still gets a chip, labelled with the id.
+  defp chosen_label(id, options) do
+    case Enum.find(options, &(Map.get(&1, :id) == id)) do
+      nil -> {id, to_string(id)}
+      option -> {id, Map.get(option, :label)}
+    end
+  end
+
   # Cut `items` into runs of the given lengths.
   defp chunk_like(lengths, items) do
     {rows, _rest} =
@@ -337,8 +339,8 @@ defmodule MobMishka.Components.MishkaCombobox do
   defp input(props, disabled?) do
     node = ~MOB"""
     <TextField
-      value={Map.get(props, :query, "")}
-      placeholder={Map.get(props, :placeholder, "Search…")}
+      value={Map.get(props, :query) || ""}
+      placeholder={Map.get(props, :placeholder) || "Search…"}
       fill_width={true}
       background={:transparent}
       enabled={not disabled?}
@@ -401,7 +403,9 @@ defmodule MobMishka.Components.MishkaCombobox do
       case rows do
         [] ->
           MishkaMenu.menu(%{open: true}, [
-            MishkaMenu.item(:__empty__, Map.get(props, :empty_text, "No matches"), disabled: true)
+            MishkaMenu.item(:__empty__, Map.get(props, :empty_text) || "No matches",
+              disabled: true
+            )
           ])
 
         rows ->
@@ -438,12 +442,12 @@ defmodule MobMishka.Components.MishkaCombobox do
   # Offered only when nothing matches the query EXACTLY — the web offers to
   # create "Pear" even while "Pears" is on screen, and so does this.
   defp create_row(props, matches, disabled?) do
-    query = String.trim(Map.get(props, :query, "") || "")
+    query = String.trim(Map.get(props, :query) || "")
 
     exact? = Enum.any?(matches, &(fold(Map.get(&1, :label)) == fold(query)))
 
     if truthy?(Map.get(props, :creatable, false)) and query != "" and not exact? and not disabled? do
-      label = Map.get(props, :create_label, "Create")
+      label = Map.get(props, :create_label) || "Create"
 
       [
         MishkaMenu.item(:__create__, ~s(#{label} "#{query}"),

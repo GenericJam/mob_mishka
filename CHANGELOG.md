@@ -6,6 +6,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ---
 
+## [0.1.5] - 2026-10-12
+
+Catches up with mishka_chelekom `c3235534`. The 0.1.0 port had been copied from
+upstream `e7938f4` (Aug 5) while `.upstream-sync-sha` recorded Sep 15, so the
+three Aug 20 commits below never reached mob_mishka.
+
+### Added
+- **Callers can supply the look these components hardcoded** (upstream 032cc52). All optional; the defaults draw exactly what 0.1.4 drew.
+  - `MishkaChip`: `height`, `width`, `padding_x`/`padding_y`, `corner_radius`, `text_size`, `font_weight`, `max_lines`, a `trailing` slot, and colours for the unchecked and disabled states.
+  - `MishkaPill`, `MishkaSegmentedControl`, `MishkaToggle`: height, horizontal padding, radius, text size and weight.
+  - `MishkaActionIcon`, `MishkaThemeIcon`: `border_color`, `border_width`, and `shadow`.
+  - **`shadow` doesn't draw yet**, on any component that takes it (action icon, theme icon, pill, segmented control, toggle, and the drawn switch's `thumb_shadow`): the prop reaches the node, but mob's renderers (iOS, and the Android bridge mob_new generates) don't read `shadow`. It's kept for parity with upstream and starts working once mob draws shadows.
+  - `MishkaSeparator`: `render: :box` for a filled rule (`:divider` stays the default).
+- **Drawn modes** (upstream ce3e26b): `render: :box` on `MishkaSwitch` (any track/thumb size, with `thumb_offset/4`), `MishkaProgress` and `MishkaMeter` (a declared-width, trackless bar; 0% and 100% both draw). The native primitive stays the default. `MishkaPill` gains `content_align`, `content_fill_width` and a `leading` slot.
+- `MobMishka.slot_tags/0`: the 36 sub-component tags (`<MishkaTab>`, `<MishkaMenuItem>`, `<MishkaPopoverTrigger>`, `<MishkaSelectOption>`, …).
+- `MobMishka.Components.Event.drag/1` reads a drag payload (atom or string keys) for drawer, floating window and splitter (upstream 1aa186e).
+
+### Fixed
+- **An explicit `nil` prop reached the device as the string `"nil"`** (upstream fae9393): a colour prop looked up a token named "nil", a Text drew the word, an `id` became a test tag every untagged sibling answered to. Props now read as `Map.get(props, :k) || default` (and default-true booleans as `!= false`), so `nil` means absent. One behaviour change: `number_formatter`'s `thousand_separator: nil` now groups; `false` and `""` still disable grouping.
+- Sub-component tags warned "not in the Mob tag whitelist" in apps' `~MOB` sigils, because the manifest listed only the 73 composites. It now lists the slot tags too.
+- Docs that pointed at upstream's `MishkaMob.App.on_start/0` or `mix mishka.ui.gen.mob` now name the plugin manifest and `MobMishka.register_all/0`.
+
+### Changed
+- Component tests track upstream's, with the gallery-page tests left out (mob_mishka doesn't ship the gallery). The `sync-upstream` workflow now syncs `test/mob_mishka/components/` along with the components, lists files that still name upstream-only modules, and its review notes no longer call `Map.get(props, :k) || default` an idiom to revert.
+
 ## [0.1.4] - 2026-10-09
 
 ### Added

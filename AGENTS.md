@@ -86,7 +86,7 @@ end
 Then it gets registered:
 
 - The plugin manifest at `priv/mob_plugin.exs` declares `:tags` (all `<MishkaXxx>` tags this plugin ships) and `:lifecycle.on_start` = `MobMishka.register_all/0`.
-- `MobMishka.composites/0` lists `{tag, module}` pairs.
+- `MobMishka.composites/0` lists `{tag, module}` pairs; `MobMishka.slot_tags/0` lists the slot tags (`<MishkaPopoverTrigger>`, `<MishkaSelectOption>`, …) — children a parent's `expand/3` consumes by `:type`, with no expander of their own. The manifest's `:tags` is exactly the union of the two (`test/mob_mishka_test.exs` enforces it).
 - `MobMishka.register_all/0` iterates that list at boot and calls `Mob.Composite.register/2`, preferring `<override_namespace>.<Short>` if that module is loaded (opt-in vendoring — see MOB-251).
 
 Conventions that matter:
@@ -102,7 +102,7 @@ Conventions that matter:
 2. **Write the module** under `lib/mob_mishka/components/`. Use an existing composite of similar shape as a template — `MishkaSemiCircleProgress` for canvas-only, `MishkaAccordion` for stateful open/close, `MishkaAngleSlider` for touch-driven canvas.
 3. **Add doctests** on the pure helpers where the doctest reads naturally (numeric functions, math). Doctest is worth more here than an inflated unit test — it doubles as a call-site example.
 4. **Write a test file** at `test/mob_mishka/components/<name>_test.exs` covering `expand/3` returns the expected tree shape, `register_all/0` registers the tag, and any override-precedence behaviour if the composite has state.
-5. **Register the tag.** Add `{:mishka_your_composite, MishkaYourComposite}` to `MobMishka.composites/0`. Add `:mishka_your_composite` to the `:tags` list in `priv/mob_plugin.exs`. The two lists must agree — a mismatch would mean the sigil recognises the tag at compile time but the runtime never registers a handler, so the composite silently no-ops.
+5. **Register the tag.** Add `{:mishka_your_composite, MishkaYourComposite}` to `MobMishka.composites/0`. Add `MishkaYourComposite` to the `:tags` list in `priv/mob_plugin.exs`. The two lists must agree — a mismatch would mean the sigil recognises the tag at compile time but the runtime never registers a handler, so the composite silently no-ops. A new slot tag (a child your `expand/3` consumes) goes in `MobMishka.slot_tags/0` and the manifest's slot-tag `~w()` — otherwise every app writing it gets "not in the Mob tag whitelist".
 6. **Physical-device verify** for anything canvas-drawn or gesture-driven. Compose and SwiftUI have platform-runtime deltas iOS's default behaviour absorbs and Android leaves to the caller (see the [MOB-256 arc ADR](../mob_new/decisions/2026-09-17-android-arc-angle-dp-scaling.md) in mob_new — a plausible-looking canvas op rendered wildly different across platforms because `canvasFloat` was applied to angles). Screenshot both platforms; do not trust "looks right on iOS" alone.
 7. **Adversarial review** the diff before you commit — see the section below.
 

@@ -9,10 +9,16 @@
   selftest: MobMishka.SelfTest,
 
   # PascalCase tags this plugin contributes to the `~MOB` sigil whitelist.
-  # Grows in MOB-249 as composites port from
-  # `mishka_chelekom/development/mob/lib/*/components/*.ex`. Every tag here
-  # matches a `{tag_atom, module}` entry in `MobMishka.composites/0`. See
-  # MOB-247 in mob for how the sigil reads this list at compile time.
+  # See MOB-247 in mob for how the sigil reads this list at compile time.
+  #
+  # Two groups, each mirrored by a function in `MobMishka`:
+  #
+  #   1. Composite tags — every one matches a `{tag_atom, module}` entry in
+  #      `MobMishka.composites/0`, registered at boot by `register_all/0`.
+  #   2. Slot tags — `MobMishka.slot_tags/0`. Children a parent composite's
+  #      `expand/3` consumes by `:type` (the native analogue of a Chelekom
+  #      `<:slot>`, e.g. `<MishkaPopoverTrigger>` inside `<MishkaPopover>`).
+  #      They have no expander, but the sigil still validates them as tags.
   #
   # Also accepts a per-platform map:
   #
@@ -91,7 +97,45 @@
     MishkaTree
     MishkaTreeSelect
     MishkaVisuallyHidden
-  ),
+  ) ++
+    ~w(
+      MishkaAccordionItem
+      MishkaAlertDialogAction
+      MishkaCheckboxGroupItem
+      MishkaDialogDescription
+      MishkaDialogFooter
+      MishkaDialogTitle
+      MishkaDialogTrigger
+      MishkaDrawerFooter
+      MishkaDrawerTrigger
+      MishkaEmptyStateActions
+      MishkaEmptyStateIndicator
+      MishkaFloatingWindowHandle
+      MishkaMenuCheckbox
+      MishkaMenuItem
+      MishkaMenuLabel
+      MishkaMenuRadio
+      MishkaMenuSeparator
+      MishkaMenuSubmenu
+      MishkaPopoverArrow
+      MishkaPopoverClose
+      MishkaPopoverDescription
+      MishkaPopoverTitle
+      MishkaPopoverTrigger
+      MishkaPreviewCardTrigger
+      MishkaRadioGroupOption
+      MishkaSegmentedControlOption
+      MishkaSelectOption
+      MishkaTab
+      MishkaToastClose
+      MishkaToastItem
+      MishkaToggleGroupItem
+      MishkaToolbarButton
+      MishkaToolbarInput
+      MishkaToolbarLink
+      MishkaToolbarSeparator
+      MishkaTreeNode
+    ),
 
   # Runs at host app boot (called by `Mob.Plugins.Lifecycle` after the
   # plugin's application has started). Registers every composite listed in
