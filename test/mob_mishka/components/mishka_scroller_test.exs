@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.VacuousTest
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaScrollerTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`, so two
   # concurrent ScreenCase files race to start it (see mishka_accordion_test).

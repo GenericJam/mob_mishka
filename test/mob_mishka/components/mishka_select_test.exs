@@ -260,6 +260,44 @@ defmodule MobMishka.Components.MishkaSelectTest do
     end
   end
 
+  # The gallery page is what SelectTest.kt drives, and every option on it bar
+  # the data-driven card is now written as a tag.
+  describe "the gallery page" do
+    alias MobMishka.Showcase.Components.Select, as: Page
+
+    setup do
+      MishkaMob.Showcase.reset()
+      MishkaMob.Showcase.register_all()
+
+      :ok
+    end
+
+    defp cards do
+      assigns = Page.mount(Mob.Socket.new(MishkaMob.Showcase.ComponentScreen)).assigns
+
+      Enum.map(Page.examples(), &Mob.Composite.expand(&1.render.(assigns), self()))
+    end
+
+    test "every trigger the device test names survives expansion" do
+      ids =
+        cards()
+        |> Enum.flat_map(&flatten/1)
+        |> Enum.map(& &1.props[:id])
+        |> Enum.reject(&is_nil/1)
+
+      for tag <- ~w(sel-country-trigger-closed sel-lang-trigger-closed
+                    sel-pizza-trigger-closed sel-off-trigger-closed) do
+        assert tag in ids, "the #{tag} trigger is missing"
+      end
+    end
+
+    test "no option marker reaches the renderer from the page either" do
+      for card <- cards() do
+        assert find_all(card, :mishka_select_option) == []
+      end
+    end
+  end
+
   test "every variant renders" do
     for props <- [%{}, %{open: true}, %{value: :uk}, %{value: [:uk], multiple: true, open: true}] do
       assert_renderable(build(props))

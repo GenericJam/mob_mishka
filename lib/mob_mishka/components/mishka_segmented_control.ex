@@ -262,7 +262,7 @@ defmodule MobMishka.Components.MishkaSegmentedControl do
     # The slot tags are read for their props and then dropped: only the segments
     # built below go into the tree. A marker that survived would reach the
     # renderer, whose `when (node.type)` has no else branch, and draw nothing at
-    # all — silently, because the plugin manifest has whitelisted the name.
+    # all — silently, because mix.exs has whitelisted the name.
     #
     # A tag written without `disabled` has no such key, where option/3 defaults
     # it, so everything downstream reads it with a default rather than a match.
