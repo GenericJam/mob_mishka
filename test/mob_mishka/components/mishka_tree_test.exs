@@ -3,6 +3,8 @@ defmodule MobMishka.Components.MishkaTreeTest do
   use Mob.ScreenCase, async: false
 
   alias MobMishka.Components.{MishkaTree, MishkaTreeSelect}
+  alias MobMishka.Showcase
+  alias MobMishka.Showcase.ComponentScreen
 
   doctest MobMishka.Components.MishkaTree
 
@@ -60,6 +62,8 @@ defmodule MobMishka.Components.MishkaTreeTest do
   defp node_with_tag(tree, tag) do
     tree |> flatten() |> Enum.find(&(&1.props[:id] == tag))
   end
+
+  defp page(view), do: Mob.Composite.expand(tree(view), self())
 
   describe "visible/2" do
     test "a collapsed tree is just its roots" do
@@ -769,6 +773,144 @@ defmodule MobMishka.Components.MishkaTreeTest do
         |> Enum.reject(&is_nil/1)
 
       assert offsets == [0, 40, 40, 0]
+    end
+  end
+
+  describe "the showcase page" do
+    setup do
+      Showcase.reset()
+      Showcase.register_all()
+      :ok
+    end
+
+    test "each example carries its own id, so nothing collides" do
+      page = page(mount_screen(ComponentScreen, %{slug: :tree}))
+      tags = tags(page)
+
+      assert "tree-row-lib" in tags
+      assert "multi-row-ada" in tags
+      assert "async-row-project" in tags
+      assert "strict-row-lib" in tags
+    end
+
+    test "the whole page is something the native layer can draw" do
+      assert_renderable(page(mount_screen(ComponentScreen, %{slug: :tree})), extra: [:canvas])
+    end
+
+    test "the reset controls are wired, not merely drawn" do
+      # Both exist so a device test can put an example back the way it found it,
+      # which is the only way tests on a screen that outlives them stay honest.
+      page = page(mount_screen(ComponentScreen, %{slug: :tree}))
+
+      assert node_with_tag(page, "multi-clear").props[:on_tap]
+      assert node_with_tag(page, "async-reset").props[:on_tap]
+    end
+
+    test "exactly two trees use the default id" do
+      # TreeTest.kt reaches the checkbox example by index — onAllNodesWithTag
+      # (\"tree-toggle-lib\")[1]. A third default-id tree on this page would
+      # silently point that index at the wrong example.
+      page = page(mount_screen(ComponentScreen, %{slug: :tree}))
+
+      assert Enum.count(tags(page), &(&1 == "tree-toggle-lib")) == 2
+    end
+
+    test "expanding one example leaves the others where they were" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t1_open, "test"}})
+
+      assert assigns(view).t1_expanded == ["lib", "test"]
+      assert assigns(view).t2_expanded == ["lib"]
+    end
+
+    test "a tap picks, and picks again to clear" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t1_pick, "mix.exs"}})
+
+      assert assigns(view).t1_selected == ["mix.exs"]
+
+      view = render_info(view, {:tap, {:t1_pick, "mix.exs"}})
+      assert assigns(view).t1_selected == []
+    end
+
+    test "the multiple example accumulates, and a hold fills the run" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t3_pick, "ada"}})
+
+      assert assigns(view).t3_selected == ["ada"]
+      assert assigns(view).t3_anchor == "ada"
+
+      view = render_info(view, {:tap, {:t3_range, "fen"}})
+
+      # eng and design are headers and eve is disabled; none of them joins.
+      assert assigns(view).t3_selected == ["ada", "bo", "cy", "dee", "fen"]
+      assert "multi-ada-selected" in tags(page(view))
+      assert "multi-eve-idle" in tags(page(view))
+    end
+
+    test "clear puts the multiple example back" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t3_pick, "ada"}})
+      view = render_info(view, {:tap, :t3_clear})
+
+      assert assigns(view).t3_selected == []
+      assert assigns(view).t3_anchor == nil
+    end
+
+    test "the async example loads, shows a loader, then opens" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+
+      assert "async-assets-closed" in tags(page(view))
+      refute "async-assets-loading" in tags(page(view))
+
+      view = render_info(view, {:tap, {:t4_fetch, "assets"}})
+
+      # Still shut, and busy — the whole point of a separate event.
+      assert assigns(view).t4_loading == ["assets"]
+      assert "async-assets-loading" in tags(page(view))
+      refute "async-assets-open" in tags(page(view))
+
+      view = render_info(view, {:tap, {:t4_arrived, "assets"}})
+
+      assert assigns(view).t4_loading == []
+      assert "async-assets-open" in tags(page(view))
+      assert "async-row-assets/logo.png" in tags(page(view))
+    end
+
+    test "forgetting the fetched children puts the loader back within reach" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t4_arrived, "assets"}})
+
+      assert assigns(view).t4_loaded == true
+
+      view = render_info(view, {:tap, :t4_reset})
+
+      assert assigns(view).t4_loaded == false
+      assert "async-assets-closed" in tags(page(view))
+      refute "async-row-assets/logo.png" in tags(page(view))
+    end
+
+    test "the header in the async example opens rather than selecting" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t4_close, "project"}})
+
+      assert assigns(view).t4_expanded == []
+      refute "async-row-readme" in tags(page(view))
+      assert assigns(view).t4_selected == []
+    end
+
+    test "the strict example does not cascade, and materialises :all" do
+      view = mount_screen(ComponentScreen, %{slug: :tree})
+      view = render_info(view, {:tap, {:t5_check, "lib"}})
+
+      assert assigns(view).t5_checked == ["lib"]
+      assert "strict-lib-checked" in tags(page(view))
+      assert "strict-lib/mishka_mob.ex-empty" in tags(page(view))
+
+      view = render_info(view, {:tap, {:t5_close, "lib"}})
+
+      # :all became a real list first, so closing one branch left the rest open.
+      assert assigns(view).t5_expanded == ["lib/mishka_mob", "test"]
     end
   end
 

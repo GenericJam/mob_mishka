@@ -3,6 +3,8 @@ defmodule MobMishka.Components.MishkaToolbarTest do
   use Mob.ScreenCase, async: false
 
   alias MobMishka.Components.{MishkaBurger, MishkaToolbar}
+  alias MobMishka.Showcase
+  alias MobMishka.Showcase.ComponentScreen
 
   doctest MobMishka.Components.MishkaToolbar
 
@@ -652,6 +654,90 @@ defmodule MobMishka.Components.MishkaToolbarTest do
     types = MishkaToolbar.slot_types()
 
     assert Enum.map(kinds(), & &1.type) |> Enum.uniq() |> Enum.all?(&(&1 in types))
+  end
+
+  describe "the showcase page" do
+    setup do
+      Showcase.reset()
+      Showcase.register_all()
+      :ok
+    end
+
+    test "renders, and every node it emits is one the native layer can draw" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+
+      assert_renderable(Mob.Composite.expand(tree(view), self()))
+    end
+
+    test "the page is written in tags, and not one marker reaches the renderer" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      # The check assert_renderable cannot make: mix.exs whitelists these names
+      # for the sigil, so a marker the toolbar failed to consume serialises
+      # cleanly and simply draws nothing.
+      for type <- MishkaToolbar.slot_types() do
+        assert find_all(tree, type) == [], "#{type} leaked to the renderer"
+      end
+    end
+
+    test "each example has its own toolbar id, so a device test can say which it touched" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      bars = ~w(tb-own tb-kinds tb-grp tb-hint tb-off tb-mix tb-scr tb-more tb-vert)
+
+      for bar <- bars, do: assert(tagged(tree, bar), "no toolbar tagged #{bar}")
+      assert length(Enum.uniq(bars)) == length(bars)
+    end
+
+    test "holding an item names it, and the hint belongs to the bar that was held" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      view = render_info(view, {:tap, {:tb_hint_hold, :redo}})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      assert text(tagged(tree, "tb-hint-hint")) == "Redo"
+      refute tagged(tree, "tb-off-hint")
+    end
+
+    test "a disabled bar still reports a hold, and its items read as disabled" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      view = render_info(view, {:tap, {:tb_off_hold, :italic}})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      assert text(tagged(tree, "tb-off-hint")) == "Italic"
+      assert tagged(tree, "tb-off-bold-disabled")
+      assert tagged(tree, "tb-mix-italic-disabled")
+      assert tagged(tree, "tb-mix-bold")
+    end
+
+    test "typing in the toolbar's input reaches the screen" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      view = render_info(view, {:change, {:tb_kinds_type, :find}, "beam"})
+
+      assert assigns(view).tb_kinds_query == "beam"
+      assert view |> tree() |> Mob.Composite.expand(self()) |> text() =~ "Looking for beam"
+    end
+
+    test "the collapsing bar hides its tail and offers the ⋯" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      assert tagged(tree, "tb-more-cut")
+      refute tagged(tree, "tb-more-table")
+      assert tagged(tree, "tb-more-overflow")
+      # The scrolling bar shows the same eight, because it scrolls instead.
+      assert tagged(tree, "tb-scr-table")
+    end
+
+    test "every status caption carries its own tag, so no assertion is page-wide" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      for tag <- ~w(tb-kinds-status tb-grp-status tb-mix-status tb-more-status) do
+        assert tagged(tree, tag).type == :text, "no caption tagged #{tag}"
+      end
+    end
   end
 
   describe "burger" do
