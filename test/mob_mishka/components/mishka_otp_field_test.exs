@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.TopLevelAliasImportRequire
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaOtpFieldTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false

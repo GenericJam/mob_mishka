@@ -3,6 +3,8 @@ defmodule MobMishka.Components.MishkaToolbarTest do
   use Mob.ScreenCase, async: false
 
   alias MobMishka.Components.{MishkaBurger, MishkaToolbar}
+  alias MobMishka.Showcase
+  alias MobMishka.Showcase.ComponentScreen
 
   doctest MobMishka.Components.MishkaToolbar
 
@@ -126,12 +128,75 @@ defmodule MobMishka.Components.MishkaToolbarTest do
     end
 
     test "a link is tinted and underlined, so colour is not the only difference" do
-      tree = MishkaToolbar.toolbar(%{}, [MishkaToolbar.link(:docs, "Docs")])
+      tree = MishkaToolbar.toolbar(%{id: "tb"}, [MishkaToolbar.link(:docs, "Docs")])
       label = find(tree, :text, text: "Docs")
-      rule = tree |> find_all(:box) |> Enum.find(&(&1.props[:height] == 1))
+      link = tagged(tree, "tb-docs")
+
+      # The rule is the wrapper's own colour showing through one pixel of bottom
+      # padding under the label, so it is exactly as wide as the label.
+      rule = find(link, :box, padding_bottom: 1)
 
       assert label.props.text_color == :primary
       assert rule.props.background == :primary
+      assert rule.props.fill_width == false
+      assert rule.children == [label]
+    end
+
+    test "a link's rule is drawn by padding, not by a Box that fills" do
+      # A `fill_width` Box under the label took everything the Row had left, so the
+      # link grew to the strip's edge and the separator and input after it were
+      # zero wide: the bar drew only "B" and "Docs", with the find box gone.
+      tree = MishkaToolbar.toolbar(%{id: "tb"}, [MishkaToolbar.link(:docs, "Docs")])
+      link = tagged(tree, "tb-docs")
+
+      assert link |> flatten() |> Enum.filter(&(&1.props[:fill_width] == true)) == []
+      assert link |> flatten() |> Enum.filter(&(&1.props[:height] == 1)) == []
+    end
+
+    test "the label is painted in the colour behind it, which is what leaves the rule showing" do
+      docs = [MishkaToolbar.link(:docs, "Docs", group: "Nav")]
+      loose = [MishkaToolbar.link(:docs, "Docs")]
+
+      backdrop = fn props, items ->
+        props |> MishkaToolbar.toolbar(items) |> find(:text, text: "Docs") |> Map.fetch!(:props)
+      end
+
+      assert backdrop.(%{}, loose).background == :surface_raised
+      assert backdrop.(%{background: 0xFF111827}, loose).background == 0xFF111827
+      # A labelled group has its own fill, and that is what its items sit on.
+      assert backdrop.(%{}, docs).background == :surface
+      assert backdrop.(%{group_background: :muted}, docs).background == :muted
+      # A transparent strip has nothing to match, so the page behind it is used.
+      assert backdrop.(%{background: :transparent}, loose).background == :background
+    end
+
+    test "a link's face is not rounded, so no clip edge outlines the painted label" do
+      tree = MishkaToolbar.toolbar(%{id: "tb"}, kinds())
+
+      refute Map.has_key?(tagged(tree, "tb-docs").props, :corner_radius)
+      assert tagged(tree, "tb-bold").props.corner_radius == :radius_sm
+    end
+
+    test "a button's label is not painted, only a link's" do
+      tree = MishkaToolbar.toolbar(%{}, [MishkaToolbar.button(:bold, "Bold")])
+
+      refute Map.has_key?(find(tree, :text, text: "Bold").props, :background)
+    end
+
+    test "every item sits in the row without filling it, so the ones after it keep their width" do
+      tree = MishkaToolbar.toolbar(%{id: "tb"}, kinds())
+      items = find(tree, :row).children |> Enum.reject(&(&1.type == :spacer))
+
+      assert [bold, docs, _separator, find_box] = items
+
+      for item <- [bold, docs] do
+        assert item.props.fill_width == false
+        assert item |> flatten() |> Enum.filter(&(&1.props[:fill_width] == true)) == []
+      end
+
+      # The input is the one flexible item: it takes what the others leave.
+      assert find_box.props.weight == 1
+      refute Map.has_key?(find_box.props, :width)
     end
 
     test "link_color and item_color override the ink" do
@@ -652,6 +717,90 @@ defmodule MobMishka.Components.MishkaToolbarTest do
     types = MishkaToolbar.slot_types()
 
     assert Enum.map(kinds(), & &1.type) |> Enum.uniq() |> Enum.all?(&(&1 in types))
+  end
+
+  describe "the showcase page" do
+    setup do
+      Showcase.reset()
+      Showcase.register_all()
+      :ok
+    end
+
+    test "renders, and every node it emits is one the native layer can draw" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+
+      assert_renderable(Mob.Composite.expand(tree(view), self()))
+    end
+
+    test "the page is written in tags, and not one marker reaches the renderer" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      # The check assert_renderable cannot make: mix.exs whitelists these names
+      # for the sigil, so a marker the toolbar failed to consume serialises
+      # cleanly and simply draws nothing.
+      for type <- MishkaToolbar.slot_types() do
+        assert find_all(tree, type) == [], "#{type} leaked to the renderer"
+      end
+    end
+
+    test "each example has its own toolbar id, so a device test can say which it touched" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      bars = ~w(tb-own tb-kinds tb-grp tb-hint tb-off tb-mix tb-scr tb-more tb-vert)
+
+      for bar <- bars, do: assert(tagged(tree, bar), "no toolbar tagged #{bar}")
+      assert length(Enum.uniq(bars)) == length(bars)
+    end
+
+    test "holding an item names it, and the hint belongs to the bar that was held" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      view = render_info(view, {:tap, {:tb_hint_hold, :redo}})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      assert text(tagged(tree, "tb-hint-hint")) == "Redo"
+      refute tagged(tree, "tb-off-hint")
+    end
+
+    test "a disabled bar still reports a hold, and its items read as disabled" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      view = render_info(view, {:tap, {:tb_off_hold, :italic}})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      assert text(tagged(tree, "tb-off-hint")) == "Italic"
+      assert tagged(tree, "tb-off-bold-disabled")
+      assert tagged(tree, "tb-mix-italic-disabled")
+      assert tagged(tree, "tb-mix-bold")
+    end
+
+    test "typing in the toolbar's input reaches the screen" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      view = render_info(view, {:change, {:tb_kinds_type, :find}, "beam"})
+
+      assert assigns(view).tb_kinds_query == "beam"
+      assert view |> tree() |> Mob.Composite.expand(self()) |> text() =~ "Looking for beam"
+    end
+
+    test "the collapsing bar hides its tail and offers the ⋯" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      assert tagged(tree, "tb-more-cut")
+      refute tagged(tree, "tb-more-table")
+      assert tagged(tree, "tb-more-overflow")
+      # The scrolling bar shows the same eight, because it scrolls instead.
+      assert tagged(tree, "tb-scr-table")
+    end
+
+    test "every status caption carries its own tag, so no assertion is page-wide" do
+      view = mount_screen(ComponentScreen, %{slug: :toolbar})
+      tree = Mob.Composite.expand(tree(view), self())
+
+      for tag <- ~w(tb-kinds-status tb-grp-status tb-mix-status tb-more-status) do
+        assert tagged(tree, tag).type == :text, "no caption tagged #{tag}"
+      end
+    end
   end
 
   describe "burger" do
