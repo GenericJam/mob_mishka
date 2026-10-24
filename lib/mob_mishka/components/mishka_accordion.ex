@@ -45,7 +45,7 @@ defmodule MobMishka.Components.MishkaAccordion do
 
   ## Usage
 
-  Registered once at boot (see `MishkaMob.App.on_start/0`):
+  Registered once at boot (see `MobMishka.register_all/0`):
 
       Mob.Composite.register(:mishka_accordion, {#{inspect(__MODULE__)}, :expand})
 

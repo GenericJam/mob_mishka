@@ -110,7 +110,7 @@ defmodule MobMishka.Components.MishkaCheckboxGroupTest do
       taps = build(%{}) |> rows() |> Enum.map(& &1.props[:on_tap])
 
       assert List.last(taps) == nil
-      refute Enum.at(taps, 0) == nil
+      assert Enum.at(taps, 0) == {self(), {:pick, :a}}
     end
 
     test "a disabled group cascades to every row and the parent" do

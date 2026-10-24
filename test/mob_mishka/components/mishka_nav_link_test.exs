@@ -10,9 +10,6 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
     MishkaVisuallyHidden
   }
 
-  alias MobMishka.Showcase
-  alias MobMishka.Showcase.ComponentScreen
-
   doctest MobMishka.Components.MishkaAnchor
   doctest MobMishka.Components.MishkaMenubar
   doctest MobMishka.Components.MishkaNavigationMenu
@@ -564,15 +561,11 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
     end
   end
 
-  # The gallery page is what the device test drives, so the tags it addresses
-  # are pinned here: renaming one on the page breaks this instead of failing on
-  # a device twenty minutes later.
-  describe "the gallery page" do
+  describe "nested nav links as composite tags" do
     setup do
-      Showcase.reset()
-      Showcase.register_all()
-
-      %{view: mount_screen(ComponentScreen, %{slug: :nav_link})}
+      Mob.Composite.reset()
+      MobMishka.register_all()
+      :ok
     end
 
     test "nested links can be written as tags, not only built as functions" do
@@ -593,74 +586,5 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
       assert "nav-inbox" in tags(expanded)
       assert text(expanded) =~ "Inbox"
     end
-
-    test "every row NavLinkTest addresses is tagged", %{view: view} do
-      tags = view |> page() |> tags()
-
-      for tag <- [
-            "nav-dash",
-            "nav-dash-active",
-            "nav-docs",
-            "nav-docs-inactive",
-            "nav-docs-trailing",
-            "nav-settings",
-            "nav-mail",
-            "nav-mail-closed",
-            "nav-team",
-            "nav-team-open",
-            "nav-alice",
-            "nav-reports",
-            "nav-reports-trailing",
-            "nav-archive",
-            "nav-archive-disabled"
-          ] do
-        assert tag in tags
-      end
-    end
-
-    test "one handler serves the sidebar, and the active tag follows it", %{view: view} do
-      after_tap = view |> render_info({:tap, {:nl_pick, "/docs"}}) |> page() |> tags()
-
-      assert "nav-docs-active" in after_tap
-      assert "nav-dash-inactive" in after_tap
-      refute "nav-dash-active" in after_tap
-    end
-
-    test "toggling the group reveals its children and flips the chevron tag", %{view: view} do
-      before = view |> page() |> tags()
-      opened = view |> render_info({:tap, :nl_mail}) |> page() |> tags()
-
-      refute "nav-inbox" in before
-      assert "nav-inbox" in opened
-      assert "nav-mail-open" in opened
-      refute "nav-mail-closed" in opened
-    end
-
-    test "the disabled row is wired to nothing at all", %{view: view} do
-      tree = page(view)
-
-      refute Map.has_key?(tagged(tree, "nav-archive").props, :on_tap)
-      assert Map.has_key?(tagged(tree, "nav-reports").props, :on_tap)
-      # NavLinkTest reads the mark off the Reports row's own tag rather than a
-      # counter: the BEAM outlives the Activity, so a count from an earlier test
-      # would still be there, while a flip is true whatever it started as.
-      marked = view |> render_info({:tap, :nl_mark}) |> page() |> tags()
-      assert "nav-reports-active" in marked
-    end
-
-    test "no two examples share an assign, so a tap names the one it moved", %{view: view} do
-      moved = view |> render_info({:tap, :nl_mail}) |> assigns()
-
-      assert moved.nl_mail_open
-      assert moved.nl_current == "/dashboard"
-      assert moved.nl_marked == false
-    end
-
-    test "the whole page is renderable once its composites expand", %{view: view} do
-      assert_renderable(page(view))
-    end
   end
-
-  # The page is written with composite tags; expand them the way the device does.
-  defp page(view), do: Mob.Composite.expand(tree(view), self())
 end

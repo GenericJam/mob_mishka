@@ -31,8 +31,9 @@ defmodule MobMishka.Components.MishkaSeparator do
   `"<MishkaSeparator> is not in the Mob tag whitelist"` — harmless in itself, and
   fatal under `--warnings-as-errors`.
 
-  `mix mishka.ui.gen.mob` adds the tags it generates to that list, so the tag
-  form is the one to write. The function form remains for anything a tag cannot
+  mob_mishka's plugin manifest (`priv/mob_plugin.exs`) adds every `<Mishka…>`
+  tag to that list (mob 0.9 plugin-manifest tag discovery), so the tag form is
+  the one to write. The function form remains for anything a tag cannot
   express — two child slots, mostly.
 
   ## Props

@@ -220,43 +220,4 @@ defmodule MobMishka.Components.MishkaToggleGroupTest do
       assert_renderable(tree)
     end
   end
-
-  # The gallery page is what ToggleGroupTest.kt drives, and every bar on it is
-  # now written as markup — group props and item tags alike, no builder.
-  describe "the gallery page" do
-    alias MobMishka.Showcase.Components.ToggleGroup, as: Page
-
-    setup do
-      MishkaMob.Showcase.reset()
-      MishkaMob.Showcase.register_all()
-
-      :ok
-    end
-
-    defp cards do
-      assigns = Page.mount(Mob.Socket.new(MishkaMob.Showcase.ComponentScreen)).assigns
-
-      Enum.map(Page.examples(), &Mob.Composite.expand(&1.render.(assigns), self()))
-    end
-
-    test "every button the device test names is still tagged" do
-      ids = cards() |> Enum.flat_map(&flatten/1) |> Enum.map(& &1.props[:id])
-
-      # The suffix is state, and the device test taps its way through several,
-      # so name the button and accept either.
-      for button <- ~w(tgg-align-left tgg-align-center tgg-align-right
-                       tgg-style-bold tgg-style-italic
-                       tgg-view-list tgg-view-grid tgg-view-cards
-                       tgg-one-right tgg-off-on tgg-off-off) do
-        assert "#{button}-pressed" in ids or "#{button}-idle" in ids,
-               "the #{button} button is missing"
-      end
-    end
-
-    test "no item marker reaches the renderer from the page either" do
-      for card <- cards() do
-        assert find_all(card, :mishka_toggle_group_item) == []
-      end
-    end
-  end
 end

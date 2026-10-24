@@ -3,8 +3,6 @@ defmodule MobMishka.Components.MishkaRadioGroupTest do
   use Mob.ScreenCase, async: false
 
   alias MobMishka.Components.MishkaRadioGroup
-  alias MobMishka.Showcase
-  alias MobMishka.Showcase.ComponentScreen
 
   doctest MobMishka.Components.MishkaRadioGroup
 
@@ -74,7 +72,7 @@ defmodule MobMishka.Components.MishkaRadioGroupTest do
       taps = build(%{value: :free}) |> rows() |> Enum.map(& &1.props[:on_tap])
 
       assert List.last(taps) == nil
-      refute Enum.at(taps, 0) == nil
+      assert Enum.at(taps, 0) == {self(), {:plan, :free}}
     end
 
     test "a disabled group cascades to every option" do
@@ -200,42 +198,6 @@ defmodule MobMishka.Components.MishkaRadioGroupTest do
       # `when (node.type)` has no branch for it and silently draws nothing. Only
       # naming the marker catches an expander that forgot to consume it.
       assert find_all(tree, :mishka_radio_group_option) == []
-    end
-  end
-
-  # The gallery page is what RadioGroupTest.kt drives, and it is now written in
-  # slot tags — so the page is where the tag form is proved end to end, through
-  # the real composite pass rather than a hand-built child list.
-  describe "the gallery page" do
-    setup do
-      Showcase.reset()
-      Showcase.register_all()
-
-      :ok
-    end
-
-    defp page, do: ComponentScreen |> mount_screen(%{slug: :radio_group}) |> expanded()
-
-    defp expanded(view), do: Mob.Composite.expand(tree(view), self())
-
-    defp ring_tags(tree),
-      do: tree |> flatten() |> Enum.map(&get_in(&1, [:props, :id])) |> Enum.reject(&is_nil/1)
-
-    test "every ring the device test names is still tagged" do
-      tags = ring_tags(page())
-
-      # The suffix is state, and RadioGroupTest taps its way through several
-      # states — so name the ring, not the state it happens to be in at mount.
-      # (`rg-off-pro` is `-selected` here and `-empty` by the time the device
-      # test reads it, because that test first moves the plan off :pro.)
-      for ring <- ~w(rg-plan-free rg-plan-pro rg-size-m rg-off-pro rg-off-free) do
-        assert "#{ring}-empty" in tags or "#{ring}-selected" in tags,
-               "the #{ring} ring is missing"
-      end
-    end
-
-    test "no option marker reaches the renderer from the page either" do
-      assert find_all(page(), :mishka_radio_group_option) == []
     end
   end
 
