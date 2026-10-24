@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.WeakAssertion
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaFloatingWindowTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false
@@ -107,7 +105,7 @@ defmodule MobMishka.Components.MishkaFloatingWindowTest do
       assert {_, grab} =
                MishkaFloatingWindow.drag(%{phase: :began, x: 60.0, y: 57.0}, nil, @window)
 
-      assert grab
+      assert grab.offset == {40.0, 47.0}
 
       assert MishkaFloatingWindow.drag(%{phase: :began, x: 60.0, y: 59.0}, nil, @window) ==
                {{20, 10}, nil}

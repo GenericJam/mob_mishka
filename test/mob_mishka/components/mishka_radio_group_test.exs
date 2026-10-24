@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.WeakAssertion
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaRadioGroupTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false
@@ -74,7 +72,7 @@ defmodule MobMishka.Components.MishkaRadioGroupTest do
       taps = build(%{value: :free}) |> rows() |> Enum.map(& &1.props[:on_tap])
 
       assert List.last(taps) == nil
-      refute Enum.at(taps, 0) == nil
+      assert Enum.at(taps, 0) == {self(), {:plan, :free}}
     end
 
     test "a disabled group cascades to every option" do

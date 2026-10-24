@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.WeakAssertion
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaSplitterTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false
@@ -84,8 +82,8 @@ defmodule MobMishka.Components.MishkaSplitterTest do
       canvas = find(disabled, :canvas)
 
       # Still drawn — a divider that vanishes when disabled makes the layout
-      # jump — but nothing can fire it.
-      assert canvas
+      # jump — but nothing can fire it: the track and the grip are both there.
+      assert %{width: 320, height: 48, draw: [%{op: :rect}, %{op: :rect}]} = canvas.props
       refute Map.has_key?(canvas.props, :on_drag)
     end
 

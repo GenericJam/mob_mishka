@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.TopLevelAliasImportRequire
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaOtpFieldTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false
@@ -234,8 +232,6 @@ defmodule MobMishka.Components.MishkaOtpFieldTest do
     test "disabled disables the field natively, not just its handler" do
       # Withholding the handler alone left the field editable and focusable: it
       # looked live and quietly went nowhere.
-      alias MobMishka.Components.MishkaMaskInput
-
       assert find(MishkaMaskInput.mask_input(mask: "99/99"), :text_field).props.enabled == true
 
       assert MishkaMaskInput.mask_input(mask: "99/99", disabled: true)

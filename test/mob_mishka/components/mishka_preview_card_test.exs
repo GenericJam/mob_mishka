@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.WeakAssertion
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaPreviewCardTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`, and the
   # gallery block below writes the global composite registry.
@@ -325,7 +323,8 @@ defmodule MobMishka.Components.MishkaPreviewCardTest do
       # Compose measures a Row's unweighted children first: a text column left
       # to fill the width would be measured before the avatar beside it.
       names = card() |> find_all(:box) |> Enum.find(&(&1.props[:weight] == 1))
-      assert names
+
+      assert %{type: :box, props: %{weight: 1}} = names
       assert text(names) =~ "Shahryar"
     end
 

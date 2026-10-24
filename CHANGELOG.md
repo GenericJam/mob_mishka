@@ -6,6 +6,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ---
 
+## [Unreleased]
+
+Catches up with mishka_chelekom `b57c7d27` (range `c3235534..b57c7d27`).
+
+### Added
+- `backdrop` prop on `MishkaAnchor` and `MishkaTabs`: the colour the label is painted in so the underline (now padding showing through, as wide as the text) reads on any surface. Defaults to `:surface`.
+- `MishkaTabs`: the active label is set semibold as well as tinted.
+
+### Fixed
+- Rows whose first item filled the parent and left the rest zero wide: `MishkaMenubar` and `MishkaNavigationMenu` triggers hug their labels; `MishkaFloatingIndicator` targets share the row by `weight`; `MishkaToolbar` links draw their rule as padding instead of a filling Box.
+- `MishkaTabs` underline was zero wide inside the scrolling strip; a tab with no panel no longer crashes when the strip is tagged.
+- `MishkaDrawer.trigger/2` with a string builds a Box and Text, not a `:button` whose Material padding left no room for the label.
+- `MishkaNumberField` sizes the value slot for the placeholder too, so an empty field stays one line and the strip keeps its width as the first digit goes in.
+- `MishkaOverflowList`: the `+N` counter follows the last item, and items sit in a horizontal Scroll so the one at the edge is clipped rather than squeezed.
+- Vertical `MishkaSlider` sends `width: length` so the Android bridge does not clip the track to a 48dp stub.
+- Docs: sizing guidance for `MishkaFloatingWindow`, `MishkaPill` rows and `MishkaTooltip` spacing.
+
 ## [0.1.5] - 2026-10-12
 
 Catches up with mishka_chelekom `c3235534`. The 0.1.0 port had been copied from

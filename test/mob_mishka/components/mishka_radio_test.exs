@@ -1,5 +1,3 @@
-# credo:disable-for-this-file Jump.CredoChecks.WeakAssertion
-# Rationale: inherited from upstream port (MOB-249)
 defmodule MobMishka.Components.MishkaRadioTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false
@@ -16,7 +14,7 @@ defmodule MobMishka.Components.MishkaRadioTest do
     end
 
     test "selected shows a centre dot; unselected shows none" do
-      assert dot(MishkaRadio.radio(checked: true)) != nil
+      assert %{type: :box, props: %{background: :primary}} = dot(MishkaRadio.radio(checked: true))
       assert dot(MishkaRadio.radio(checked: false)) == nil
     end
 
