@@ -3,6 +3,8 @@ defmodule MobMishka.Components.MishkaThemeIconTest do
   use Mob.ScreenCase, async: false
 
   alias MobMishka.Components.{MishkaMarquee, MishkaThemeIcon}
+  alias MobMishka.Showcase
+  alias MobMishka.Showcase.ComponentScreen
 
   defp icon(props, children \\ []), do: MishkaThemeIcon.theme_icon(props, children)
 
@@ -304,6 +306,90 @@ defmodule MobMishka.Components.MishkaThemeIconTest do
       assert_renderable(icon(%{icon: "★", variant: variant, id: "ti", label: "Save"}),
         extra: [:canvas]
       )
+    end
+  end
+
+  # The gallery renders every example into one scrolling column, so a device test
+  # can only tell two of them apart by their tags. These assert the tags exist
+  # and that each one moves for its own reason.
+  describe "the showcase page" do
+    setup do
+      Showcase.reset()
+      Showcase.register_all()
+      :ok
+    end
+
+    defp page, do: mount_screen(ComponentScreen, %{slug: :theme_icon})
+    defp expanded(view), do: Mob.Composite.expand(tree(view), self())
+
+    defp page_tags(view) do
+      view |> expanded() |> flatten() |> Enum.map(& &1.props[:id]) |> Enum.reject(&is_nil/1)
+    end
+
+    test "renders, canvas and all" do
+      assert_renderable(expanded(page()), extra: [:canvas])
+    end
+
+    test "every example is addressable by tag" do
+      tags = page_tags(page())
+
+      for tag <- [
+            "ti-basic",
+            "ti-var-filled",
+            "ti-var-gradient",
+            "ti-size-xs",
+            "ti-size-xl",
+            "ti-radius-full",
+            "ti-color-error",
+            "ti-color-raw",
+            "ti-grad-round",
+            "ti-meaning",
+            "ti-drawn",
+            "ti-sw-light"
+          ] do
+        assert tag in tags, "the page has no #{tag}"
+      end
+    end
+
+    test "the tag path wires its handlers — a bare atom would render and do nothing" do
+      boxes = page() |> expanded() |> find_all(:box)
+
+      assert Enum.any?(boxes, &(&1.props[:on_tap] == {self(), :ti_tap}))
+      assert Enum.any?(boxes, &(&1.props[:on_long_press] == {self(), {:ti_hold, "Deploy"}}))
+    end
+
+    test "the icons that convey something say which they are" do
+      tags = page_tags(page())
+
+      assert "ti-meaning-labelled" in tags
+      assert "ti-plain-decorative" in tags
+      refute "ti-plain-labelled" in tags
+    end
+
+    test "tapping the star moves only the star's own count" do
+      view = page()
+      assert "ti-taps-0" in page_tags(view)
+
+      tapped = render_info(view, {:tap, :ti_tap})
+
+      assert assigns(tapped).ti_taps == 1
+      assert "ti-taps-1" in page_tags(tapped)
+    end
+
+    test "holding the labelled icon reports what it means" do
+      held = render_info(page(), {:tap, {:ti_hold, "Deploy"}})
+
+      assert assigns(held).ti_held == "Deploy"
+      assert "ti-held-deploy" in page_tags(held)
+    end
+
+    test "the switcher fills exactly one option, and it is the chosen one" do
+      view = render_info(page(), {:tap, {:ti_theme, :light}})
+      tags = page_tags(view)
+
+      assert "ti-sw-light-filled" in tags
+      assert "ti-sw-dark-subtle" in tags
+      refute "ti-sw-dark-filled" in tags
     end
   end
 

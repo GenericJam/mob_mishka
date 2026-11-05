@@ -4,6 +4,8 @@ defmodule MobMishka.Components.MishkaPreviewCardTest do
   use Mob.ScreenCase, async: false
 
   alias MobMishka.Components.{MishkaPopover, MishkaPreviewCard, MishkaScroller}
+  alias MobMishka.Showcase
+  alias MobMishka.Showcase.ComponentScreen
 
   defp footer, do: [%{type: :button, props: %{text: "Follow"}, children: []}]
   defp chip, do: [%{type: :text, props: %{text: "@shahryar"}, children: []}]
@@ -324,7 +326,7 @@ defmodule MobMishka.Components.MishkaPreviewCardTest do
       # to fill the width would be measured before the avatar beside it.
       names = card() |> find_all(:box) |> Enum.find(&(&1.props[:weight] == 1))
 
-      assert %{type: :box, props: %{weight: 1}} = names
+      assert names
       assert text(names) =~ "Shahryar"
     end
 
@@ -360,7 +362,8 @@ defmodule MobMishka.Components.MishkaPreviewCardTest do
   describe "the composite tag" do
     setup do
       Mob.Composite.reset()
-      MobMishka.register_all()
+      Showcase.reset()
+      Showcase.register_all()
       :ok
     end
 
@@ -444,6 +447,107 @@ defmodule MobMishka.Components.MishkaPreviewCardTest do
       tree = Mob.Composite.expand(node, self())
 
       assert find(tree, :box, id: "p-trigger").props.on_long_press == {self(), {:hold, "p"}}
+    end
+  end
+
+  describe "the gallery page" do
+    setup do
+      Mob.Composite.reset()
+      Showcase.reset()
+      Showcase.register_all()
+      :ok
+    end
+
+    defp page, do: mount_screen(ComponentScreen, %{slug: :preview_card})
+    defp page_tags(view), do: view |> tree() |> Mob.Composite.expand(self()) |> ids()
+
+    test "renders, and starts with every card closed" do
+      view = page()
+
+      assert_renderable(Mob.Composite.expand(tree(view), self()))
+      tags = page_tags(view)
+
+      assert "pc-elixir-closed" in tags
+      assert "pc-phoenix-closed" in tags
+      refute "pc-elixir-open" in tags
+
+      # The page writes its triggers as <MishkaPreviewCardTrigger>, and a slot
+      # tag the parent failed to consume renders nothing while every other
+      # assertion here still passes — so the thing to hold is named explicitly.
+      assert "pc-elixir-trigger" in tags
+      assert "pc-top-trigger" in tags
+      assert "pc-side-trigger" in tags
+      assert page() |> tree() |> Mob.Composite.expand(self()) |> text() =~ "Hold me"
+    end
+
+    test "holding a name opens its card and nothing else's" do
+      tags = page() |> render_info({:tap, {:pc_hold, "pc-elixir"}}) |> page_tags()
+
+      assert "pc-elixir-open" in tags
+      assert "pc-elixir-popup-bottom" in tags
+      assert "pc-elixir-arrow-center" in tags
+      assert "pc-phoenix-closed" in tags
+      refute "pc-phoenix-open" in tags
+    end
+
+    test "holding the other one moves the card rather than opening a second" do
+      tags =
+        page()
+        |> render_info({:tap, {:pc_hold, "pc-elixir"}})
+        |> render_info({:tap, {:pc_hold, "pc-phoenix"}})
+        |> page_tags()
+
+      assert "pc-phoenix-open" in tags
+      refute "pc-elixir-open" in tags
+    end
+
+    test "holding the open one closes it again" do
+      tags =
+        page()
+        |> render_info({:tap, {:pc_hold, "pc-elixir"}})
+        |> render_info({:tap, {:pc_hold, "pc-elixir"}})
+        |> page_tags()
+
+      assert "pc-elixir-closed" in tags
+      refute "pc-elixir-open" in tags
+    end
+
+    test "a tap is not a hold — it visits, and leaves the card shut" do
+      tags = page() |> render_info({:tap, {:pc_visit, "pc-elixir"}}) |> page_tags()
+
+      assert "pc-visited-pc-elixir" in tags
+      refute "pc-elixir-open" in tags
+    end
+
+    test "the footer button works, and says so in its tag" do
+      view = render_info(page(), {:tap, {:pc_hold, "pc-elixir"}})
+      assert "pc-elixir-follow-off" in page_tags(view)
+
+      followed = render_info(view, {:tap, {:pc_follow, "pc-elixir"}})
+      assert "pc-elixir-follow-on" in page_tags(followed)
+      assert "pc-followed-pc-elixir" in page_tags(followed)
+    end
+
+    test "the side examples own their own assigns, so one hold moves one card" do
+      view = render_info(page(), {:tap, {:pc_top_hold, "pc-top"}})
+      tags = page_tags(view)
+
+      assert "pc-top-popup-top" in tags
+      assert "pc-top-arrow-end" in tags
+      assert "pc-side-closed" in tags
+
+      beside = view |> render_info({:tap, {:pc_side_hold, "pc-side"}}) |> page_tags()
+      assert "pc-side-popup-right" in beside
+      assert "pc-side-arrow-start" in beside
+      assert "pc-top-popup-top" in beside
+    end
+
+    test "the pinned example needs no hold at all" do
+      tags = page_tags(page())
+
+      assert "pc-static-popup-bottom" in tags
+      assert "pc-static-avatar" in tags
+      assert "pc-bare-popup-bottom" in tags
     end
   end
 
