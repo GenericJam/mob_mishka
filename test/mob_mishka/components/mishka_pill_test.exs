@@ -47,6 +47,13 @@ defmodule MobMishka.Components.MishkaPillTest do
     end
   end
 
+  describe "weight" do
+    test "rides on the root so the parent Row can share its width, and is absent when unset" do
+      assert MishkaPill.pill(label: "e", weight: 1.0).props.weight == 1.0
+      refute Map.has_key?(MishkaPill.pill(label: "e").props, :weight)
+    end
+  end
+
   describe "the remove button" do
     test "is absent unless with_remove is set" do
       refute text(MishkaPill.pill(label: "e")) =~ "✕"
@@ -110,6 +117,29 @@ defmodule MobMishka.Components.MishkaPillTest do
       icon = [%{type: :text, props: %{text: "★"}, children: []}]
 
       assert MishkaPill.expand(%{}, icon, %{screen: self()}) == MishkaPill.pill(%{}, icon)
+    end
+  end
+
+  describe "id" do
+    test "tags the pill, and its ✕ as <id>-remove" do
+      node = MishkaPill.pill(label: "Item 3", id: "tok", with_remove: true, on_remove: :drop)
+
+      assert node.props.id == "tok"
+      assert remove_row(node).props.id == "tok-remove"
+    end
+
+    test "the ✕ keeps its tag when disabled, so a test can try to tap it" do
+      node = MishkaPill.pill(label: "x", id: "tok", with_remove: true, disabled: true)
+
+      assert remove_row(node).props.id == "tok-remove"
+      refute Map.has_key?(remove_row(node).props, :on_tap)
+    end
+
+    test "nothing is tagged without one" do
+      node = MishkaPill.pill(label: "x", with_remove: true)
+
+      refute Map.has_key?(node.props, :id)
+      refute Map.has_key?(remove_row(node).props, :id)
     end
   end
 
