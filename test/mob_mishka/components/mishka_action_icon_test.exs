@@ -128,6 +128,55 @@ defmodule MobMishka.Components.MishkaActionIconTest do
              MishkaActionIcon.action_icon(%{}, art)
   end
 
+  describe "corner_radius" do
+    test "overrides the radius the shape gives" do
+      assert MishkaActionIcon.action_icon(%{icon: "x", corner_radius: 14}).props.corner_radius ==
+               14
+    end
+
+    test "unset, the shape decides" do
+      assert MishkaActionIcon.action_icon(%{icon: "x"}).props.corner_radius == :radius_md
+
+      assert MishkaActionIcon.action_icon(%{icon: "x", shape: :circle}).props.corner_radius ==
+               20.0
+    end
+  end
+
+  describe "overlay" do
+    test "is drawn after the glyph, inside the target" do
+      badge = %{type: :box, props: %{width: 10, height: 10}, children: []}
+      node = MishkaActionIcon.action_icon(%{overlay: badge}, [])
+
+      assert List.last(node.children) == badge
+    end
+
+    test "an unset overlay leaves the child list untouched" do
+      node = MishkaActionIcon.action_icon(%{icon: "x"}, [])
+
+      assert length(node.children) == 1
+      refute Enum.any?(node.children, &match?(%{props: %{width: 10}}, &1))
+    end
+  end
+
+  describe "size: :hug" do
+    test "drops the box's own size and decoration" do
+      node = MishkaActionIcon.action_icon(icon: "✎", size: :hug)
+
+      refute Map.has_key?(node.props, :width)
+      refute Map.has_key?(node.props, :height)
+      refute Map.has_key?(node.props, :corner_radius)
+      refute Map.has_key?(node.props, :background)
+      assert node.props.fill_width == false
+    end
+
+    test "still carries the glyph and the tap" do
+      node = MishkaActionIcon.action_icon(icon: "✎", size: :hug, on_tap: :edit_note)
+
+      assert node.props.on_tap == {self(), :edit_note}
+      assert find_all(node, :text) |> Enum.map(& &1.props.text) == ["✎"]
+    end
+  end
+
   test "every variant renders" do
     for props <- [%{}, %{icon: "x"}, %{icon: "x", variant: :filled}, %{icon: "x", disabled: true}] do
       assert_renderable(MishkaActionIcon.action_icon(props))
