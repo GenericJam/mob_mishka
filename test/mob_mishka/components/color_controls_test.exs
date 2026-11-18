@@ -22,7 +22,7 @@ defmodule MobMishka.Components.ColorControlsTest do
   defp ops_of(tree, op), do: Enum.filter(ops(tree), &(&1.op == op))
 
   # Canvas is missing from mob 0.7.20's tag whitelist but is rendered by both
-  # bridges; see the note in the upstream showcase suite.
+  # bridges; see the note in MishkaMob.ShowcaseTest.
   defp assert_draws(tree), do: assert_renderable(tree, extra: [:canvas])
 
   describe "hue slider" do

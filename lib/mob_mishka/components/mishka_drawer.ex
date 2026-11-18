@@ -68,7 +68,7 @@ defmodule MobMishka.Components.MishkaDrawer do
 
   ## Usage
 
-  Registered once at boot (see `MobMishka.register_all/0`):
+  Registered once at boot (see `MishkaMob.App.on_start/0`):
 
       Mob.Composite.register(:mishka_drawer, {#{inspect(__MODULE__)}, :expand})
 
@@ -235,6 +235,8 @@ defmodule MobMishka.Components.MishkaDrawer do
   Also absent: focus trapping and `modal="trap-focus"` (there is no focus ring
   to trap), the iOS-style page indent behind an open drawer (it would mean
   wrapping the host's whole content tree), `aria-*` wiring, and `*_class`.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/drawer
   """
 
   require Logger
