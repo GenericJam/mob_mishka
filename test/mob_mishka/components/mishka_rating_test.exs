@@ -64,8 +64,8 @@ defmodule MobMishka.Components.MishkaRatingTest do
     end
 
     test "the half cell centres the empty glyph and the overlay, and hugs them" do
-      # Start-aligned (Compose's and SwiftUI's default), the overlay sits at the
-      # cell's leading edge and its cut misses the empty star's centre.
+      # Start-aligned (mob's box default on both platforms), the overlay sits at
+      # the cell's leading edge and its cut misses the empty star's centre.
       half = Enum.at(cells(Rating.rating(value: 3.5, size: 22)), 3)
 
       assert half.props == %{fill_width: false, align: "center"}
