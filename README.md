@@ -2,7 +2,7 @@
 
 Mishka Chelekom composites for [Mob](https://github.com/GenericJam/mob) apps, shipped as a proper Hex plugin instead of vendored into every generated app.
 
-Seventy-three composites — dialogs, tabs, sliders, hue/alpha pickers, semi-circle progress, angle slider, and the rest — that used to live as `.ex` copies inside every `mix mob.new` project now ship from one place, upgrade like any other dep, and stay swappable for users who want to edit their own copy.
+Eighty composites — dialogs, tabs, sliders, hue/alpha pickers, semi-circle progress, angle slider, and the rest — that used to live as `.ex` copies inside every `mix mob.new` project now ship from one place, upgrade like any other dep, and stay swappable for users who want to edit their own copy.
 
 ## Why this exists
 
@@ -39,7 +39,7 @@ That is the entire setup. No `Components.register_all/0` call in your `on_start/
 
 ## What's in it
 
-Seventy-three composites plus three support modules (`Anchored`, `Color`, `Event`). A few of the more useful ones:
+Eighty composites plus three support modules (`Anchored`, `Color`, `Event`). A few of the more useful ones:
 
 | Composite | What it is |
 |---|---|

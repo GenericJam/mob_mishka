@@ -47,7 +47,7 @@ defmodule MobMishkaTest do
 
       registered = MapSet.new(MobMishka.composites(), fn {_tag, module} -> module end)
 
-      assert MapSet.difference(shipped, registered) == MapSet.new()
+      assert shipped == registered
     end
 
     test "register_all/0 returns :ok" do

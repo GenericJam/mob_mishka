@@ -54,7 +54,7 @@ defmodule MobMishka.MixProject do
       # Plugin-manifest tag discovery (MOB-247, this plugin's headline
       # mechanism) ships in mob 0.9.0. Below that the ~MOB sigil doesn't
       # union plugin manifest :tags into its whitelist and a consuming app
-      # sees "unknown tag" errors on <MishkaHueSlider> and its 72 siblings
+      # sees "unknown tag" errors on every <Mishka…> tag
       # unless the app adds a config :mob, :extra_tags block — the block
       # this plugin exists to retire.
       # 0.9.15 adds Mob.Plugin.SelfTest (MobMishka.SelfTest).

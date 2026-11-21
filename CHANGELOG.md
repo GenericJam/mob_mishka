@@ -16,8 +16,8 @@ Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).
   - `MishkaCard`: figure, title, content and actions, with the slot tags `<MishkaCardFigure>`, `<MishkaCardTitle>` and `<MishkaCardActions>` (whitelisted, 39 slot tags now); `weight` and `height` on the root.
   - `MishkaDock` and `MishkaDockItem`: a floating bar of icon items with an action node beside it.
   - `MishkaListItem`: the leading / body / trailing row.
-  - `MishkaRating`: stars, with a half star drawn as a clipped overlay.
-  - `MishkaTextInput`: a plain text field with the form events, `value_epoch`, and leading/trailing nodes.
+  - `MishkaRating`: stars, with a half star drawn as a clipped overlay. **The half doesn't clip yet:** the overlay's `clip_width` reaches the node, but no mob renderer reads it, so a half star draws as a full one.
+  - `MishkaTextInput`: a plain text field with the form events and leading/trailing nodes. **Four documented props do nothing yet:** mob's text field reads `keyboard`, `font` and `lines`, so `keyboard_type`, `font_family` and `multiline` reach the node unread, and so does `value_epoch`, which no mob renderer has. Pass `lines: 3` for a multi-line field.
 - `MishkaActionIcon`: `size: :hug` (a bare, tappable glyph), `corner_radius`, and `overlay` (a corner badge over the glyph).
 - `MishkaMenu`: `dropdown/4` keeps the trigger in flow and draws the panel in its own window; row height, padding, icon gap, text and separator props.
 - `MishkaPopover`: `shadow` and per-edge `padding_*` on the panel. Like every `shadow` prop here, it reaches the node but mob's renderers don't draw it yet.
