@@ -16,7 +16,7 @@ Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).
   - `MishkaCard`: figure, title, content and actions, with the slot tags `<MishkaCardFigure>`, `<MishkaCardTitle>` and `<MishkaCardActions>` (whitelisted, 39 slot tags now); `weight` and `height` on the root.
   - `MishkaDock` and `MishkaDockItem`: a floating bar of icon items with an action node beside it.
   - `MishkaListItem`: the leading / body / trailing row.
-  - `MishkaRating`: stars, with a half star drawn as the empty glyph under a filled one cut at 50% by `clip_width`. Every cell hugs its glyph (no fixed width, so a star isn't cut at a large font scale), and the half cell centres both glyphs with the clip on an overlay that hugs the filled one, so the cut lands on the star's centre (MOB-536). The cut needs mob 0.9.x with clip_width and the mob_new bridge that reads it; on an older renderer a half star draws as a full one. The default ink is `:amber_500`: upstream's `:warning` is no mob colour token, so default stars drew invisible on iOS and in the text colour on Android.
+  - `MishkaRating`: stars, with a half star drawn as the empty glyph under a filled one cut at 50% by `clip_width`. Every cell hugs its glyph (no fixed width, so a star isn't cut at a large font scale), and the half cell centres both glyphs with the clip on an overlay that hugs the filled one, so the cut lands on the star's centre (MOB-536). The cut needs mob 0.9.32 and, on Android, a `MobBridge.kt` from mob_new 0.6.21; on an older renderer a half star draws as a full one. The default ink is `:amber_500`: upstream's `:warning` is no mob colour token, so default stars drew invisible on iOS and in the text colour on Android.
   - `MishkaTextInput`: a plain text field with the form events and leading/trailing nodes. Upstream's prop names are translated to the ones mob's text field reads (MOB-536): `keyboard_type` is sent as `keyboard` (a string), `font_family` as `font`, and `multiline: true` as `lines: 3` (an explicit `lines` wins); mob's `keyboard` and `font` are accepted as well. There is no `value_epoch`: to replace the text, assign a new `value`, which mob's renderers adopt.
 - `MishkaActionIcon`: `size: :hug` (a bare, tappable glyph), `corner_radius`, and `overlay` (a corner badge over the glyph).
 - `MishkaMenu`: `dropdown/4` keeps the trigger in flow and draws the panel in its own window; row height, padding, icon gap, text and separator props.
@@ -29,6 +29,7 @@ Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).
 - `MishkaTabs`: the active label is set semibold as well as tinted.
 
 ### Changed
+- Requires mob >= 0.9.32 (was >= 0.9.15), the first that draws `clip_width` (MOB-536). Android apps also need the `MobBridge.kt` from mob_new 0.6.21 for it.
 - CI runs `mix test --warnings-as-errors`, so a `~MOB` "not in the Mob tag whitelist" warning fails the build (MOB-536).
 - The `sync-upstream` workflow applies only upstream's change since `.upstream-sync-sha` (`git apply -3` of the diff between the two rewritten upstream trees), so blocks mob_mishka cut stay cut; a clashing file is committed with conflict markers and listed in the PR under "Conflicts to resolve". It leaves the sync branch alone while its open PR carries a review commit, and dispatches `tests` on the branch so the PR gets a result (MOB-536).
 

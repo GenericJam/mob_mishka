@@ -43,8 +43,8 @@ defmodule MobMishka.Components.MishkaRating do
   left-to-right layout, the right in a right-to-left one, where the row runs
   the other way too.
 
-  The cut needs a mob that draws `clip_width` (mob 0.9.x with clip_width) and,
-  on Android, the mob_new bridge that reads it. On an older renderer the prop
+  The cut needs mob 0.9.32 or later (it draws `clip_width`) and, on Android, a
+  `MobBridge.kt` from mob_new 0.6.21 or later. On an older renderer the prop
   is ignored and a half star draws as a full one.
 
   ## Props
