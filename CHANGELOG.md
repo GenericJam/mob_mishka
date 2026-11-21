@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-21
+
 Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).
 
 ### Added
