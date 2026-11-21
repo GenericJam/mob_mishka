@@ -49,8 +49,11 @@ jobs:
       - name: Credo (strict)
         run: mix credo --strict
 
+      # --warnings-as-errors: a `~MOB` sigil naming a tag the plugin manifest
+      # doesn't whitelist only warns ("not in the Mob tag whitelist"), and an
+      # app using that tag renders nothing. Fail on it here.
       - name: Tests
-        run: mix test
+        run: mix test --warnings-as-errors
         timeout-minutes: 10
 
   security_scan:

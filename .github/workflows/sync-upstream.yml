@@ -9,11 +9,15 @@ name: sync-upstream
 #   2. Local cleanups (trimmed docs, credo fixes), and upstream's showcase-gallery
 #      tests left out (mob_mishka doesn't ship the gallery).
 #
-# This workflow surfaces upstream drift as a PR — it doesn't force-sync.
-# The PR-reviewer decides which upstream changes are real (new components,
-# real behaviour changes) vs re-introduced cleanups that should be dropped.
-# Upstream's `Map.get(props, :k) || default` is NOT one of those: it's a bug
-# fix (an explicit nil otherwise reached the device as the string "nil").
+# This workflow surfaces upstream drift as a PR — it doesn't force-sync. It
+# applies only upstream's DELTA since the last sync (see
+# .github/scripts/sync-upstream-apply.sh): upstream at `.upstream-sync-sha` and
+# at its new HEAD both go through the namespace rewrite, the two trees are
+# diffed, and that diff is `git apply -3`'d onto master. So the cleanups above
+# stay made, and a hunk that clashes with one is committed with conflict
+# markers for the reviewer to resolve. Upstream's
+# `Map.get(props, :k) || default` is NOT a cleanup to undo: it's a bug fix (an
+# explicit nil otherwise reached the device as the string "nil").
 #
 # State tracked in `.upstream-sync-sha` at the repo root: the upstream commit
 # the current tree was reconciled against. Bumped by the PR when merged, so
@@ -34,6 +38,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # `gh workflow run tests` on the sync branch (see the last step).
+  actions: write
 
 concurrency:
   group: sync-upstream
@@ -44,9 +50,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The review-commit check compares origin/sync/upstream-mishka with
+          # origin/master, and the delta apply fetches into this repo.
+          fetch-depth: 0
+
+      # create-pull-request resets the branch to master plus the regenerated
+      # changes whenever the tree differs, so regenerating while a reviewer is
+      # reconciling the PR would force-push their commits away. Any commit on
+      # the branch beyond master that the bot didn't commit means a human is
+      # on it: leave the branch alone while its PR is open. Once the PR is
+      # merged or closed the branch is fair game again (a squash merge leaves
+      # the review commits behind on a branch nobody deletes).
+      - name: Skip while a review is in progress
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BRANCH=origin/sync/upstream-mishka
+          if ! git rev-parse -q --verify "refs/remotes/$BRANCH" > /dev/null; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          OPEN=$(gh pr list --repo "$GITHUB_REPOSITORY" --head sync/upstream-mishka \
+            --state open --json number --jq 'length')
+          REVIEW=$(git log --format='%cn%x09%h %s' "origin/master..$BRANCH" \
+            | awk -F'\t' '$1 != "github-actions[bot]" { print $2 " (" $1 ")" }')
+          if [ "$OPEN" != 0 ] && [ -n "$REVIEW" ]; then
+            echo "::notice::sync/upstream-mishka has review commits, so it is left as it is: $(echo "$REVIEW" | paste -sd ';' -)"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Fetch upstream + apply component sync
         id: sync
+        if: steps.guard.outputs.skip != 'true'
         run: |
           set -euo pipefail
 
@@ -57,8 +97,9 @@ jobs:
           UPSTREAM_TEST_PATH=development/mob/test/mishka_mob/components
           LOCAL_TEST_PATH=test/mob_mishka/components
 
-          # Sparse-checkout upstream — we only need the components and their tests.
-          git clone --depth=1 --filter=blob:none --sparse \
+          # Full history (the delta needs upstream at LAST_SYNC), but no blobs
+          # until a checkout asks for them, and only the components and tests.
+          git clone --filter=blob:none --sparse \
             --branch "$UPSTREAM_BRANCH" \
             "https://github.com/$UPSTREAM_REPO.git" upstream_src
           ( cd upstream_src && git sparse-checkout set "$UPSTREAM_PATH" "$UPSTREAM_TEST_PATH" )
@@ -75,45 +116,41 @@ jobs:
             exit 0
           fi
 
-          # Copy every upstream component .ex and component test .exs through
-          # the namespace rewrite. The rewrite is a whole-word substitution on
-          # the `MishkaMob.Components` namespace; any other `MishkaMob.*` left
-          # afterwards (upstream's showcase gallery, which mob_mishka doesn't
-          # ship) is listed in the PR body for the reviewer to cut. Tests come
-          # along so a component change never lands without the tests upstream
-          # changed with it.
-          rewrite() {
-            sed -e 's/MishkaMob\.Components/MobMishka.Components/g' \
-                -e 's/defmodule MishkaMob\b/defmodule MobMishka/g' \
-                -e 's/alias MishkaMob\b/alias MobMishka/g' \
-                "$1" > "$2"
-          }
-          mkdir -p "$LOCAL_PATH" "$LOCAL_TEST_PATH"
-          for f in upstream_src/$UPSTREAM_PATH/*.ex; do
-            rewrite "$f" "$LOCAL_PATH/$(basename "$f")"
-          done
-          for f in upstream_src/$UPSTREAM_TEST_PATH/*.exs; do
-            rewrite "$f" "$LOCAL_TEST_PATH/$(basename "$f")"
-          done
+          # Applies upstream's delta LAST_SYNC..UPSTREAM_SHA, or copies every
+          # file whole when there is no LAST_SYNC. Files it couldn't apply
+          # cleanly are listed in $REPORT.
+          REPORT=$(mktemp)
+          .github/scripts/sync-upstream-apply.sh upstream_src "$LAST_SYNC" "$UPSTREAM_SHA" "$REPORT"
 
           echo "$UPSTREAM_SHA" > .upstream-sync-sha
           rm -rf upstream_src
 
+          if [ -n "$LAST_SYNC" ]; then
+            echo "mode=delta" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=whole" >> "$GITHUB_OUTPUT"
+          fi
+
+          {
+            echo "conflicts<<EOF_CONFLICTS"
+            cat "$REPORT"
+            echo "EOF_CONFLICTS"
+          } >> "$GITHUB_OUTPUT"
+          if [ -s "$REPORT" ]; then
+            echo "::warning::upstream changes that didn't apply cleanly: $(paste -sd ' ' "$REPORT")"
+          fi
+
           # Files still naming upstream-only modules (the showcase gallery):
           # their blocks have to go before the PR's tests can pass. The alias
-          # rewrite above turns `alias MishkaMob.Showcase` into
+          # rewrite turns `alias MishkaMob.Showcase` into
           # `alias MobMishka.Showcase`, so look for both spellings.
           LEFTOVER=$(grep -rlE 'MishkaMob|MobMishka\.Showcase' "$LOCAL_PATH" "$LOCAL_TEST_PATH" | sort | tr '\n' ' ' || true)
           echo "leftover=${LEFTOVER:-none}" >> "$GITHUB_OUTPUT"
 
-          # If the transformed tree is byte-identical to what was already
-          # committed, there's nothing to propose — just bump the marker.
-          # (Bumping the marker still counts as "changed" because
-          # .upstream-sync-sha itself moved; PR will be a one-line marker bump
-          # which we DO want so the tracker advances.)
-          if git diff --quiet -- "$LOCAL_PATH" "$LOCAL_TEST_PATH"; then
-            # Only the marker moved. Emit a marker-only PR so the sync state
-            # is honest about what upstream head we're reconciled to.
+          # The apply stages what it changes, so ask git status, not git diff.
+          # If no component or test changed, only the marker moved: still a
+          # PR, a one-line marker bump, so the tracker advances.
+          if [ -z "$(git status --porcelain -- "$LOCAL_PATH" "$LOCAL_TEST_PATH")" ]; then
             echo "content unchanged after transform; marker-only PR"
             echo "changed=marker-only" >> "$GITHUB_OUTPUT"
           else
@@ -132,7 +169,8 @@ jobs:
           fi
 
       - name: Open / update PR
-        if: steps.sync.outputs.changed != 'false'
+        id: cpr
+        if: steps.guard.outputs.skip != 'true' && steps.sync.outputs.changed != 'false'
         uses: peter-evans/create-pull-request@v6
         with:
           branch: sync/upstream-mishka
@@ -149,35 +187,51 @@ jobs:
             covering upstream range **${{ steps.sync.outputs.range }}**.
 
             **What happened**
-            - Sparse-cloned upstream's `development/mob/lib/mishka_mob/components/` and `development/mob/test/mishka_mob/components/`.
-            - Applied namespace rewrite `MishkaMob.Components.*` → `MobMishka.Components.*`.
-            - Wrote each transformed component into `lib/mob_mishka/components/` and each test into `test/mob_mishka/components/`.
+            - Cloned upstream's `development/mob/lib/mishka_mob/components/` and `development/mob/test/mishka_mob/components/`.
+            - ${{ steps.sync.outputs.mode == 'delta' && 'Applied only upstream''s change over this range: upstream at both ends went through the namespace rewrite `MishkaMob.Components.*` → `MobMishka.Components.*`, the two results were diffed, and the diff was `git apply -3`''d onto master. What mob_mishka cut or reworded locally stays as it is; new upstream files were added and deleted ones removed.' || 'No previous sync to diff against, so every upstream component and test was copied whole through the namespace rewrite `MishkaMob.Components.*` → `MobMishka.Components.*`.' }}
             - Bumped `.upstream-sync-sha` to the new upstream HEAD.
+
+            **Conflicts to resolve**
+            ${{ steps.sync.outputs.conflicts || 'None.' }}
+
+            A file listed with conflict markers is committed with them, so CI fails until they're
+            resolved. One marked "not applied" was left as it was on master; port its upstream
+            change by hand if it matters.
 
             **Still naming upstream-only modules** (cut those blocks, typically showcase-gallery tests): ${{ steps.sync.outputs.leftover }}
 
             **How to review**
             - **Real upstream changes** (new components, props, behaviour changes, bug
               fixes) and the tests that came with them: keep them.
-            - **Re-introduced idioms** that mob_mishka has previously normalised
-              (e.g. long moduledoc blocks it trimmed, credo fixes): revert those
-              *hunks*, not whole files, so no upstream feature is dropped by accident.
-              Not an idiom: upstream reads props as `Map.get(props, :k) || default`
-              on purpose (mishka_chelekom fae9393): with `Map.get/3` an explicit
-              `nil` reached the device as the string "nil".
+            - **Conflicts** usually mean upstream changed a block mob_mishka had cut or
+              reworded (a showcase-gallery test, a trimmed doc, a credo fix). Resolve them
+              hunk by hunk, keeping upstream's real change. Not something to revert:
+              upstream reads props as `Map.get(props, :k) || default` on purpose
+              (mishka_chelekom fae9393): with `Map.get/3` an explicit `nil` reached the
+              device as the string "nil".
             - New components must be registered too: each composite in `MobMishka.composites/0`,
               each new sub-component tag (`<MishkaXyz…>`) in `MobMishka.slot_tags/0`, and both in
               `priv/mob_plugin.exs`. Otherwise the tag renders nothing, or apps' `~MOB` sigils warn
-              "not in the Mob tag whitelist". `test/mob_mishka_test.exs` fails on a missing composite.
-            - The `tests` run this workflow's push starts never executes: GitHub holds it as
-              `action_required` (a `GITHUB_TOKEN` push), and the PR shows no result. Run
-              `tests` from the Actions tab on this branch, or push a review commit, before merging.
-            - Every hourly run rebuilds this branch and force-pushes it if the tree differs, so a
-              review commit pushed here is gone by the next run. Push the review and merge within
-              the hour, or open the reconciliation as its own PR and close this one.
+              "not in the Mob tag whitelist". `test/mob_mishka_test.exs` fails on a missing composite,
+              and `mix test --warnings-as-errors` fails on the whitelist warning.
+            - The `tests` result on this PR comes from a `workflow_dispatch` run this workflow starts
+              on the branch after each update: the push's own runs are held as `action_required`
+              (a `GITHUB_TOKEN` push). A review commit you push starts `tests` as usual.
+            - Push review commits to this branch freely: once it carries a commit not made by
+              `github-actions[bot]`, the hourly sync leaves the branch alone until this PR is
+              merged or closed, and picks up any newer upstream change after that.
             - Once merged, `.upstream-sync-sha` advances so the next sync
               starts from THIS commit's range end.
 
             **Type**: ${{ steps.sync.outputs.changed == 'marker-only' && 'marker-only (no component content changed)' || 'component changes' }}
 
             Triggered by: `${{ github.event_name }}`.
+
+      # The push above is a GITHUB_TOKEN push, so GitHub holds the `tests` runs
+      # it starts as `action_required` and the PR head gets no result. A
+      # workflow_dispatch from GITHUB_TOKEN does run.
+      - name: Run tests on the sync branch
+        if: steps.cpr.outputs.pull-request-operation == 'created' || steps.cpr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run tests --ref sync/upstream-mishka --repo "$GITHUB_REPOSITORY"
