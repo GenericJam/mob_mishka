@@ -12,52 +12,40 @@ defmodule MobMishka.Components.MishkaRating do
 
   `icon` and `empty_icon` take a glyph string, a node, or a list of nodes. A
   string is drawn as a `Text` at `size` in `color` / `empty_color`; a node is
-  used as given, so an app's own icon font or glyph node keeps its own type.
-  Either way the glyph is centred in a `size`-wide cell, so a node should be no
-  wider than `size`.
+  used as given, so an app's own icon font or glyph node keeps its own type and
+  the caller sizes it.
 
   The defaults are the text characters `"★"` and `"☆"`, so a rating renders
   without an icon set.
 
-  ## Every cell is a centred `size`-wide box
+  ## Cells hug their glyph
 
-  A glyph's advance width is not `size`: `★` at text size 22 is narrower or
-  wider than 22 depending on the font. Each cell, full, empty or half, is a Box
-  `size` wide with `align: "center"`, and the glyph sits in its middle. Compose
-  stacks a Box's children top-start unless told otherwise, and so does SwiftUI's
-  `ZStack` as mob builds it, so without the alignment a glyph hugs the cell's
-  left edge, and the half star's 50% cut lands beside the star's centre rather
-  than on it. Because every cell is the same centred box, all the stars line up
-  whichever of them is the half.
-
-  On Android `size` is the cell's width in dp but a string glyph's text size in
-  sp, which grows with the system font scale. At a large font scale the glyph
-  can be wider than its cell, and is then cut to the cell's width. A rating that
-  must keep its shape at any font scale takes node icons drawn `size` wide (an
-  image or a canvas), which don't scale with text.
+  Every cell is a Box with `fill_width: false` and **no width or height**, so
+  it is exactly as big as what it holds. `size` is a text size, not a cell
+  width: it is multiplied by the theme's `text_scale` and, on Android, is in sp,
+  which grows with the system font scale. A cell a fixed `size` wide would cut
+  the glyph at a large font scale; a hugging cell grows with it. No height
+  either: a cell keeps its glyph's line box, so the row centres every star on
+  the same line, the half star included.
 
   ## The half star is a clip, not a second glyph
 
-  A half star is the empty glyph with the filled one stacked over it and cut at
-  50% by `clip_width`. Clipping the draw leaves measurement alone, so the pair
-  occupies one star's line box and the row does not grow. The filled glyph sits
-  in its own centred `size`-wide Box, and that Box carries the clip, so the cut
-  falls at the cell's centre, which is the star's centre. `clip_width` keeps the
-  leading half: the left in a left-to-right layout, the right in a right-to-left
-  one, where the row runs the other way too.
+  A half star is the empty glyph with the filled one stacked over it and cut in
+  half by `clip_width: 0.5`. The filled glyph sits in an overlay Box that hugs
+  it and carries the clip, and `clip_width` is a fraction of the overlay's own
+  laid-out width, so the cut falls at the middle of the filled glyph's advance
+  at any font scale. The half cell hugs the wider of the two and centres both
+  (`align: "center"`; Compose's Box and mob's SwiftUI `ZStack` otherwise stack
+  children top-start). `★` and `☆` come from the same font, so the centred
+  glyphs coincide and the cut lands on the star's centre. Clipping the draw
+  leaves measurement alone, so the pair occupies one star's line box and the
+  row does not grow. `clip_width` keeps the leading half: the left in a
+  left-to-right layout, the right in a right-to-left one, where the row runs
+  the other way too.
 
   The cut needs a mob that draws `clip_width` (mob 0.9.x with clip_width) and,
   on Android, the mob_new bridge that reads it. On an older renderer the prop
   is ignored and a half star draws as a full one.
-
-  ## Width only
-
-  The cells carry a **width and no height**. The width is what the centring and
-  the 50% crop need; the height must hug the glyph's line box. A fixed
-  `size × size` Box makes that cell shorter than a star's text box: the row
-  centres a shorter box against the others and the star's baseline drops below
-  the line. Width only keeps every cell in the same line box, exactly as a bare
-  star is.
 
   ## Props
 
@@ -65,7 +53,7 @@ defmodule MobMishka.Components.MishkaRating do
   |------|--------|---------|---------|
   | `value` | number | `0` | The rating, in stars — `3.5` is three and a half. |
   | `count` | integer | `5` | How many cells. |
-  | `size` | number | `22` | One cell's edge, and a string glyph's text size. |
+  | `size` | number | `22` | A string glyph's text size. Cells hug their glyph. |
   | `gap` | number | `2` | Space between cells. |
   | `icon` | string, node, or list of nodes | `"★"` | A full cell. |
   | `empty_icon` | string, node, or list of nodes | `"☆"` | An empty cell, and the outline under a half. |
@@ -130,26 +118,26 @@ defmodule MobMishka.Components.MishkaRating do
   defp cell(_index, _full, _half?), do: :empty
 
   defp star(:full, props, size, color, _empty_color) do
-    cell_box(size, %{}, glyph(Map.get(props, :icon) || "★", size, color))
+    cell_box(%{}, glyph(Map.get(props, :icon) || "★", size, color))
   end
 
   defp star(:empty, props, size, _color, empty_color) do
-    cell_box(size, %{}, glyph(Map.get(props, :empty_icon) || "☆", size, empty_color))
+    cell_box(%{}, glyph(Map.get(props, :empty_icon) || "☆", size, empty_color))
   end
 
   defp star(:half, props, size, color, empty_color) do
     empty = glyph(Map.get(props, :empty_icon) || "☆", size, empty_color)
-    filled = cell_box(size, %{clip_width: 0.5}, glyph(Map.get(props, :icon) || "★", size, color))
+    filled = cell_box(%{clip_width: 0.5}, glyph(Map.get(props, :icon) || "★", size, color))
 
-    cell_box(size, %{}, List.wrap(empty) ++ [filled])
+    cell_box(%{}, List.wrap(empty) ++ [filled])
   end
 
-  # A `size`-wide box with its content centred, and no height. See "Every cell
-  # is a centred `size`-wide box" and "Width only".
-  defp cell_box(size, extra, children) do
+  # A box that hugs its content (no width or height) and centres it. See "Cells
+  # hug their glyph" and "The half star is a clip, not a second glyph".
+  defp cell_box(extra, children) do
     %{
       type: :box,
-      props: Map.merge(%{width: size, align: "center"}, extra),
+      props: Map.merge(%{fill_width: false, align: "center"}, extra),
       children: List.wrap(children)
     }
   end

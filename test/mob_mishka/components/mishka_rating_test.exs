@@ -53,32 +53,48 @@ defmodule MobMishka.Components.MishkaRatingTest do
       assert [%{type: :text, props: %{text: "☆"}}, ^clip] = half.children
     end
 
-    test "the filled glyph is centred in a size-wide clip box, so the cut lands on its centre" do
-      # Start-aligned, the glyph hugs the box's left edge and 50% of `size`
-      # cuts beside the star's centre, because a glyph's advance isn't `size`.
+    test "the overlay hugs the filled glyph, so the 50% cut is the middle of its advance" do
+      # clip_width is a fraction of the overlay's own width. A fixed width would
+      # put the cut at half of that width instead, wherever the glyph sits.
       clip = find(Rating.rating(value: 3.5, size: 22), :box, clip_width: 0.5)
 
-      assert clip.props.width == 22
-      assert clip.props.align == "center"
+      assert clip.props.fill_width == false
+      refute Map.has_key?(clip.props, :width)
+      refute Map.has_key?(clip.props, :height)
     end
 
-    test "carries the cell's width and NO height, so it sits on the star line" do
-      # A fixed height makes this cell shorter than the other stars' text boxes:
-      # the row centres a shorter box and the half's baseline drops.
-      tree = Rating.rating(value: 3.5, size: 22)
-      clip = find(tree, :box, clip_width: 0.5)
+    test "the half cell centres the empty glyph and the overlay, and hugs them" do
+      # Start-aligned (Compose's and SwiftUI's default), the overlay sits at the
+      # cell's leading edge and its cut misses the empty star's centre.
+      half = Enum.at(cells(Rating.rating(value: 3.5, size: 22)), 3)
 
-      refute Map.has_key?(clip.props, :height)
-      refute Map.has_key?(Enum.at(cells(tree), 3).props, :height)
+      assert half.props == %{fill_width: false, align: "center"}
+    end
+
+    test "the overlay hugs a node icon too" do
+      icon = %{type: :text, props: %{text: "X"}, children: []}
+      clip = find(Rating.rating(value: 0.5, icon: icon), :box, clip_width: 0.5)
+
+      assert clip.children == [icon]
+      refute Map.has_key?(clip.props, :width)
     end
   end
 
   describe "cells" do
-    test "full, half and empty cells are the same centred size-wide box with no height" do
-      # The same box for every cell is what lines the five stars up.
-      for cell <- cells(Rating.rating(value: 2.5, size: 22)) do
-        assert cell.type == :box
-        assert Map.delete(cell.props, :clip_width) == %{width: 22, align: "center"}
+    test "no cell has a fixed width or height, at any size" do
+      # `size` is a text size (sp on Android, times text_scale): a cell `size`
+      # dp wide would cut the glyph at a large font scale.
+      for size <- [14, 22, 40] do
+        tree = Rating.rating(value: 2.5, size: size)
+
+        for cell <- cells(tree) do
+          assert cell.type == :box
+          assert cell.props.fill_width == false
+          refute Map.has_key?(cell.props, :width)
+          refute Map.has_key?(cell.props, :height)
+        end
+
+        refute Enum.any?(find_all(tree, :box), &(&1.props[:width] == size))
       end
     end
 
