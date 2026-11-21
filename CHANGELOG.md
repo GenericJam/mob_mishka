@@ -34,6 +34,7 @@ Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).
 - The `sync-upstream` workflow applies only upstream's change since `.upstream-sync-sha` (`git apply -3` of the diff between the two rewritten upstream trees), so blocks mob_mishka cut stay cut; a clashing file is committed with conflict markers and listed in the PR under "Conflicts to resolve". It leaves the sync branch alone while its open PR carries a review commit, and dispatches `tests` on the branch so the PR gets a result (MOB-536).
 
 ### Fixed
+- Found reviewing the 0.1.6 release (upstream code): `MishkaCalendar` and `MishkaDockItem` put their `*font_family` props on Text nodes as `font_family`, which mob's Text never reads; they now emit `font`, so the fonts apply. `MishkaCalendar`'s day view draws `empty` for an empty `clusters` list, as for empty `rows`. `MishkaMenu.dropdown/4` routes an atom `on_dismiss` through `Event.handler/1`, so an outside tap closes the menu on Android.
 - Rows whose first item filled the parent and left the rest zero wide: `MishkaMenubar` and `MishkaNavigationMenu` triggers hug their labels; `MishkaFloatingIndicator` targets share the row by `weight`; `MishkaToolbar` links draw their rule as padding instead of a filling Box.
 - `MishkaTabs` underline was zero wide inside the scrolling strip; a tab with no panel no longer crashes when the strip is tagged.
 - `MishkaDrawer.trigger/2` with a string builds a Box and Text, not a `:button` whose Material padding left no room for the label.
