@@ -40,6 +40,20 @@ defmodule MobMishka.Components.MishkaRatingTest do
     end
   end
 
+  describe "the default ink" do
+    # An atom that is neither a theme token nor a palette colour reaches native
+    # as a string: iOS draws it fully transparent, Android in the fallback text
+    # colour. The original default (:warning) was one.
+    test "is a colour mob resolves" do
+      drawable = Map.keys(Mob.Renderer.colors()) ++ Map.keys(Map.from_struct(%Mob.Theme{}))
+
+      inks = Rating.rating(value: 2.5) |> find_all(:text) |> Enum.map(& &1.props[:text_color])
+
+      assert [_ | _] = inks
+      assert Enum.reject(inks, &(&1 in drawable)) == []
+    end
+  end
+
   describe "the half star" do
     test "is the empty glyph with a filled one clipped over it" do
       tree = Rating.rating(value: 3.5)

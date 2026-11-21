@@ -57,7 +57,7 @@ defmodule MobMishka.Components.MishkaRating do
   | `gap` | number | `2` | Space between cells. |
   | `icon` | string, node, or list of nodes | `"★"` | A full cell. |
   | `empty_icon` | string, node, or list of nodes | `"☆"` | An empty cell, and the outline under a half. |
-  | `color` | color token / ARGB int | `:warning` | A string `icon`'s ink. |
+  | `color` | color token / ARGB int | `:amber_500` | A string `icon`'s ink. |
   | `empty_color` | color token / ARGB int | `color` | A string `empty_icon`'s ink. |
   | `half` | boolean | `true` | Draw the half step when the value has one. |
   | `id` | string | unset | Native testTag on the row. |
@@ -94,7 +94,7 @@ defmodule MobMishka.Components.MishkaRating do
 
   defp cells(props) do
     size = setting(props, :size, 22)
-    color = setting(props, :color, :warning)
+    color = setting(props, :color, :amber_500)
     empty_color = setting(props, :empty_color, color)
     gap = setting(props, :gap, 2)
     count = setting(props, :count, 5)
