@@ -11,7 +11,7 @@ defmodule MobMishkaTest do
       # MOB-249's follow-up commits add or remove a composite (or when a
       # sibling ticket adds one). The invariant test below guards the more
       # important property — that :tags stays in lockstep.
-      assert Enum.count(composites) == 73
+      assert Enum.count(composites) == 80
 
       # Spot-check a few representative composites — the port is bulk-derived,
       # so this catches a wholesale regression (empty list, wrong namespace,
@@ -31,6 +31,23 @@ defmodule MobMishkaTest do
         assert function_exported?(module, :expand, 3),
                "#{inspect(module)} does not implement expand/3"
       end
+    end
+
+    test "every composite module the plugin ships is registered" do
+      # The upstream sync copies new components in without registering them;
+      # an unregistered composite compiles, and its tag then renders nothing.
+      {:ok, modules} = :application.get_key(:mob_mishka, :modules)
+
+      shipped =
+        for module <- modules,
+            match?(["MobMishka", "Components", "Mishka" <> _], Module.split(module)),
+            Code.ensure_loaded?(module) and function_exported?(module, :expand, 3),
+            into: MapSet.new(),
+            do: module
+
+      registered = MapSet.new(MobMishka.composites(), fn {_tag, module} -> module end)
+
+      assert MapSet.difference(shipped, registered) == MapSet.new()
     end
 
     test "register_all/0 returns :ok" do

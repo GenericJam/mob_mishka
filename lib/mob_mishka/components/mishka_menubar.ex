@@ -40,6 +40,8 @@ defmodule MobMishka.Components.MishkaMenubar do
   Not ported: roving tabindex and the arrow-key/Home/End navigation, `loop`,
   `modal`, and `orientation: vertical` (a vertical menubar is a
   `MobMishka.Components.MishkaMenu`).
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/menubar
   """
 
   import Mob.Sigil

@@ -8,9 +8,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
-Catches up with mishka_chelekom `b57c7d27` (range `c3235534..b57c7d27`).
+Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).
 
 ### Added
+- **Seven composites** (upstream 7c170c7, 504eb0f), registered in `MobMishka.composites/0` and the plugin manifest (80 composites now):
+  - `MishkaCalendar`: month grid, week lanes, day timeline and agenda views, all headless.
+  - `MishkaCard`: figure, title, content and actions, with the slot tags `<MishkaCardFigure>`, `<MishkaCardTitle>` and `<MishkaCardActions>` (whitelisted, 39 slot tags now); `weight` and `height` on the root.
+  - `MishkaDock` and `MishkaDockItem`: a floating bar of icon items with an action node beside it.
+  - `MishkaListItem`: the leading / body / trailing row.
+  - `MishkaRating`: stars, with a half star drawn as a clipped overlay.
+  - `MishkaTextInput`: a plain text field with the form events, `value_epoch`, and leading/trailing nodes.
+- `MishkaActionIcon`: `size: :hug` (a bare, tappable glyph), `corner_radius`, and `overlay` (a corner badge over the glyph).
+- `MishkaMenu`: `dropdown/4` keeps the trigger in flow and draws the panel in its own window; row height, padding, icon gap, text and separator props.
+- `MishkaPopover`: `shadow` and per-edge `padding_*` on the panel. Like every `shadow` prop here, it reaches the node but mob's renderers don't draw it yet.
+- `MishkaEmptyState`: `align: :left`, `title_size` / `title_weight` / `title_line_height`, per-edge padding.
+- `MishkaPill`: `weight`.
+- **Native test tags** (upstream c1aa001): an `id` on `MishkaAccordion`, `MishkaChip`, `MishkaCollapsible`, `MishkaCombobox`, `MishkaEmptyState`, `MishkaHighlight`, `MishkaLoadingOverlay`, `MishkaMark`, `MishkaMenu`, `MishkaPill`, `MishkaRollingNumber`, `MishkaSelect`, `MishkaSpoiler`, `MishkaSwitch`, `MishkaTagsInput` and `MishkaToast` tags the component and its parts (`<id>-trigger`, `<id>-panel`, `<id>-label`, …) for device tests. An unset `id` leaves the nodes untagged.
+- Each composite's moduledoc links to its page on mishka.tools.
 - `backdrop` prop on `MishkaAnchor` and `MishkaTabs`: the colour the label is painted in so the underline (now padding showing through, as wide as the text) reads on any surface. Defaults to `:surface`.
 - `MishkaTabs`: the active label is set semibold as well as tinted.
 

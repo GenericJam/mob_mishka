@@ -165,11 +165,16 @@ jobs:
               Not an idiom: upstream reads props as `Map.get(props, :k) || default`
               on purpose (mishka_chelekom fae9393): with `Map.get/3` an explicit
               `nil` reached the device as the string "nil".
-            - New sub-component tags (`<MishkaXyz…>`) must be registered in
-              mob_mishka too, or apps' `~MOB` sigils warn "not in the Mob tag whitelist".
-            - A PR opened by this workflow doesn't trigger the `tests` workflow
-              (GitHub's rule for `GITHUB_TOKEN`): run it from the Actions tab, or push
-              a review commit, before merging.
+            - New components must be registered too: each composite in `MobMishka.composites/0`,
+              each new sub-component tag (`<MishkaXyz…>`) in `MobMishka.slot_tags/0`, and both in
+              `priv/mob_plugin.exs`. Otherwise the tag renders nothing, or apps' `~MOB` sigils warn
+              "not in the Mob tag whitelist". `test/mob_mishka_test.exs` fails on a missing composite.
+            - The `tests` run this workflow's push starts never executes: GitHub holds it as
+              `action_required` (a `GITHUB_TOKEN` push), and the PR shows no result. Run
+              `tests` from the Actions tab on this branch, or push a review commit, before merging.
+            - Every hourly run rebuilds this branch and force-pushes it if the tree differs, so a
+              review commit pushed here is gone by the next run. Push the review and merge within
+              the hour, or open the reconciliation as its own PR and close this one.
             - Once merged, `.upstream-sync-sha` advances so the next sync
               starts from THIS commit's range end.
 

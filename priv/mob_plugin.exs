@@ -33,6 +33,8 @@
     MishkaAutocomplete
     MishkaAvatar
     MishkaBurger
+    MishkaCalendar
+    MishkaCard
     MishkaCheckbox
     MishkaCheckboxGroup
     MishkaChip
@@ -45,6 +47,8 @@
     MishkaCombobox
     MishkaContextMenu
     MishkaDialog
+    MishkaDock
+    MishkaDockItem
     MishkaDrawer
     MishkaEmptyState
     MishkaField
@@ -54,6 +58,7 @@
     MishkaHighlight
     MishkaHueSlider
     MishkaJsonInput
+    MishkaListItem
     MishkaLoadingOverlay
     MishkaMark
     MishkaMarquee
@@ -74,6 +79,7 @@
     MishkaProgress
     MishkaRadio
     MishkaRadioGroup
+    MishkaRating
     MishkaRollingNumber
     MishkaScrollArea
     MishkaScroller
@@ -88,6 +94,7 @@
     MishkaSwitch
     MishkaTabs
     MishkaTagsInput
+    MishkaTextInput
     MishkaThemeIcon
     MishkaToast
     MishkaToggle
@@ -101,6 +108,9 @@
     ~w(
       MishkaAccordionItem
       MishkaAlertDialogAction
+      MishkaCardActions
+      MishkaCardFigure
+      MishkaCardTitle
       MishkaCheckboxGroupItem
       MishkaDialogDescription
       MishkaDialogFooter

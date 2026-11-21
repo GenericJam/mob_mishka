@@ -71,6 +71,8 @@ defmodule MobMishka.Components.MishkaOverflowList do
   the same bug `MobMishka.Components.MishkaPill` documents. iOS's `MobBox` never
   reads `fill_width` at all (`IOS_TODO.md` item 6), so this is an Android fix
   until that lands.
+
+  **Documentation:** https://mishka.tools/chelekom/docs/mob/overflow-list
   """
 
   import Mob.Sigil

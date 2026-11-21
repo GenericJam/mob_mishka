@@ -21,8 +21,8 @@ defmodule MobMishka.MigrateTest do
     test "maps every ported composite by its filename basename" do
       lookup = Migrate.plugin_lookup()
 
-      # MOB-249 ports 73 composites. Every one must have a lookup entry so
-      # `plan/2` can align a vendored copy back to its plugin counterpart.
+      # Every composite must have a lookup entry so `plan/2` can align a
+      # vendored copy back to its plugin counterpart.
       assert map_size(lookup) == length(MobMishka.composites())
 
       # Spot-check the exact key shape a vendored copy on disk would carry.
