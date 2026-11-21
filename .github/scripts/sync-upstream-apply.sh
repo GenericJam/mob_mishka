@@ -96,8 +96,13 @@ git -C "$work" diff --cached --name-only --no-renames | while IFS= read -r path;
   else
     echo "not applied: $path"
     sed 's/^/    /' "$work.err"
-    reason=$(grep -m1 '^error: ' "$work.err" || echo "error: git apply failed")
-    reason=${reason#error: }
-    echo "- \`$path\`: not applied, ${reason#"$path": }" >> "$report"
+    if [ -z "$(git -C "$work" diff --cached --no-renames --diff-filter=D --name-only -- "$path")" ]; then
+      reason=$(grep -m1 '^error: ' "$work.err" || echo "error: git apply failed")
+      reason=${reason#error: }
+      reason=${reason#"$path": }
+    else
+      reason="upstream deleted it; the local copy, edited since, is kept"
+    fi
+    echo "- \`$path\`: not applied, $reason" >> "$report"
   fi
 done

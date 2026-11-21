@@ -30,6 +30,12 @@ defmodule MobMishka.Components.MishkaRating do
   than on it. Because every cell is the same centred box, all the stars line up
   whichever of them is the half.
 
+  On Android `size` is the cell's width in dp but a string glyph's text size in
+  sp, which grows with the system font scale. At a large font scale the glyph
+  can be wider than its cell, and is then cut to the cell's width. A rating that
+  must keep its shape at any font scale takes node icons drawn `size` wide (an
+  image or a canvas), which don't scale with text.
+
   ## The half star is a clip, not a second glyph
 
   A half star is the empty glyph with the filled one stacked over it and cut at
