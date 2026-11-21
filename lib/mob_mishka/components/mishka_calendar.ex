@@ -700,7 +700,7 @@ defmodule MobMishka.Components.MishkaCalendar do
       />
     </Box>
     """
-    |> drop_nil_keys([:font, :letter_spacing])
+    |> scrub_nil([:font, :letter_spacing])
   end
 
   defp weekday_row(nodes, props) do

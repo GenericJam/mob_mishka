@@ -418,6 +418,12 @@ defmodule MobMishka.Components.MishkaCalendarViewsTest do
       assert Enum.any?(nodes, &(&1.type == :text and &1.props[:font] == "Inter"))
       refute Enum.any?(nodes, &Map.has_key?(&1.props, :font_family))
     end
+
+    test "without one, no Text carries a nil font, which would block the theme's default font" do
+      nodes = flatten(MishkaCalendar.calendar(%{weekday_labels: ~w(M T W T F S S)}))
+
+      refute Enum.any?(nodes, &(Map.has_key?(&1.props, :font) and is_nil(&1.props.font)))
+    end
   end
 
   describe "the day cluster timeline" do
