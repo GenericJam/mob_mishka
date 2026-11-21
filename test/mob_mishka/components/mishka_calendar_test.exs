@@ -396,6 +396,34 @@ defmodule MobMishka.Components.MishkaCalendarViewsTest do
 
       assert node == empty
     end
+
+    test "an empty cluster list draws the empty node too" do
+      empty = %{type: :text, props: %{text: "Nothing"}, children: []}
+
+      assert MishkaCalendar.calendar(%{view: :day, clusters: [], empty: empty}) == empty
+    end
+  end
+
+  describe "fonts" do
+    # mob's Text reads `font`; a `font_family` on the node is never drawn.
+    test "a *_font_family prop reaches the Text as font" do
+      node =
+        MishkaCalendar.calendar(%{
+          weekday_labels: ~w(M T W T F S S),
+          weekday_font_family: "Inter"
+        })
+
+      nodes = flatten(node)
+
+      assert Enum.any?(nodes, &(&1.type == :text and &1.props[:font] == "Inter"))
+      refute Enum.any?(nodes, &Map.has_key?(&1.props, :font_family))
+    end
+
+    test "without one, no Text carries a nil font, which would block the theme's default font" do
+      nodes = flatten(MishkaCalendar.calendar(%{weekday_labels: ~w(M T W T F S S)}))
+
+      refute Enum.any?(nodes, &(Map.has_key?(&1.props, :font) and is_nil(&1.props.font)))
+    end
   end
 
   describe "the day cluster timeline" do
