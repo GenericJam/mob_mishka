@@ -57,8 +57,9 @@ defmodule MobMishka.MixProject do
       # sees "unknown tag" errors on every <Mishka…> tag
       # unless the app adds a config :mob, :extra_tags block — the block
       # this plugin exists to retire.
-      # 0.9.15 adds Mob.Plugin.SelfTest (MobMishka.SelfTest).
-      {:mob, "~> 0.9 and >= 0.9.15"},
+      # 0.9.15 adds Mob.Plugin.SelfTest (MobMishka.SelfTest); 0.9.32 draws
+      # clip_width, which MishkaRating's half star needs (MOB-536).
+      {:mob, "~> 0.9 and >= 0.9.32"},
       # 0.7.2+ signs v2 envelopes; mob_dev hosts refuse the v1 envelope
       # earlier versions write, so CI's `mix mob.plugin.sign` needs this floor.
       # 0.7.17 knows the selftest: manifest key (MOB-411).
