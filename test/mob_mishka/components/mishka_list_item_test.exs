@@ -36,6 +36,20 @@ defmodule MobMishka.Components.MishkaListItemTest do
       assert [%{type: :column}] = node.children
     end
 
+    test ":leading and :top pin the slots to the top of the body" do
+      # Neither renderer knows "leading" on a Row; both fell back to centre, so
+      # a leading dot sat between the two lines of a two-line body.
+      for align <- [:leading, :top, "leading", "top"] do
+        assert MishkaListItem.list_item(%{align: align}, [txt("a")]).props.align == :top
+      end
+
+      for align <- [:trailing, :bottom] do
+        assert MishkaListItem.list_item(%{align: align}, [txt("a")]).props.align == :bottom
+      end
+
+      assert MishkaListItem.list_item(%{align: :baseline}, [txt("a")]).props.align == :baseline
+    end
+
     test "gap numbers are overridable" do
       node =
         MishkaListItem.list_item(

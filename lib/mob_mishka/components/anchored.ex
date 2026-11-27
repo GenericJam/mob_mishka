@@ -71,9 +71,10 @@ defmodule MobMishka.Components.Anchored do
 
   ## iOS
 
-  Not implemented. An unknown node type on iOS falls through to
-  `MobNodeTypeColumn`, so an anchored panel degrades to the old stacked
-  accordion rather than erroring or blanking. See `IOS_TODO.md` §17.
+  Implemented since mob 0.8.3 (MOB-190): `mob_nif.m` decodes `anchored`, and
+  `MobRootView.swift` mounts the panel (`MobAnchored.swift`) over the page as
+  Android does. Where iOS places the panel against the anchor is still being
+  fixed in mob.
   """
 
   @type side :: :top | :right | :bottom | :left

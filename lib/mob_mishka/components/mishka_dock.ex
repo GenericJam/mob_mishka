@@ -85,10 +85,12 @@ defmodule MobMishka.Components.MishkaDock do
   end
 
   # Only the props the caller actually set reach the bar; an unset shadow is
-  # absent from the node rather than an explicit nil.
+  # absent from the node rather than an explicit nil. The fill is the
+  # exception: it has a documented default, and a bar drawn with no fill is not
+  # a bar.
   defp bar_props(props) do
     %{}
-    |> put_some(:background, Map.get(props, :background))
+    |> put_some(:background, Map.get(props, :background) || :surface_raised)
     |> put_some(:shadow, Map.get(props, :shadow))
     |> put_some(:border_color, Map.get(props, :border_color))
     |> put_some(:border_width, Map.get(props, :border_width))

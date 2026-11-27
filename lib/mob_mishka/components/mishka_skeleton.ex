@@ -50,7 +50,8 @@ defmodule MobMishka.Components.MishkaSkeleton do
 
   > #### `last_line` is Android-only {: .warning}
   >
-  > Compose reads layout `weight`; the iOS renderer never parses it. On iOS the
+  > Compose divides a Row by layout `weight`; as of mob 0.9.32 the iOS renderer
+  > honours `weight` only as "fill the rest" and ignores the ratio. On iOS the
   > bar and its trailing spacer are two equally-flexible siblings in an `HStack`,
   > so the last line lands at ~50% whatever `last_line` says. The full-width bars
   > agree on both platforms — a lone flexible child gets 100% either way — which
@@ -214,17 +215,18 @@ defmodule MobMishka.Components.MishkaSkeleton do
     """
   end
 
-  # iOS drops a Box's height unless the Box also has a WIDTH: `MobBox` applies
-  # `fixedHeight` only inside its `fixedWidth > 0` branch, so a childless bar
-  # measures 0pt tall and the whole placeholder is invisible — every `:text` bar
-  # and the default `:block` alike. Only `:circle` escaped, because it sets a
-  # width. A sized Spacer gives the ZStack an intrinsic height to adopt; both
-  # renderers size a Spacer on both axes, so it is `height` square, which a
-  # full-width bar swallows. Android already had the height and is unchanged.
+  # Before mob 0.9.32 iOS dropped a Box's height unless the Box also had a
+  # WIDTH: `MobBox` applied `fixedHeight` only inside its `fixedWidth > 0`
+  # branch, so a childless bar measured 0pt tall and the whole placeholder was
+  # invisible — every `:text` bar and the default `:block` alike. Only `:circle`
+  # escaped, because it sets a width. A sized Spacer gives the ZStack an
+  # intrinsic height to adopt; both renderers size a Spacer on both axes, so it
+  # is `height` square, which a full-width bar swallows. Android already had the
+  # height and is unchanged.
   #
-  # This is a workaround for a renderer gap, not a design: the real fix is for
-  # MobBox to apply fixedHeight in all three branches, the way the image and
-  # video cases already do.
+  # This is a workaround for a renderer gap, not a design. mob 0.9.32 fixed the
+  # gap (`IOS_TODO.md` item 1: a height-only Box is sized), so the filler is no
+  # longer needed on iOS either; it is kept because it is harmless.
   defp filler(height), do: ~MOB(<Spacer size={height} />)
 
   defp circle(props) do

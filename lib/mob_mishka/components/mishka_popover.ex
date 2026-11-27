@@ -126,7 +126,7 @@ defmodule MobMishka.Components.MishkaPopover do
   | `open` | boolean | `false` | Whether the panel is shown. Lives in the screen. |
   | `trigger` | string / node / nodes | `nil` | Shorthand for `<MishkaPopoverTrigger>`. Omit both and you place your own. |
   | `on_open_change` | event tag | — | Sent as `{:tap, {tag, next_open?}}`. |
-  | `open_on_hold` | boolean | `false` | A long press on the trigger also opens it. |
+  | `open_on_hold` | boolean | `false` | A long press on the trigger also opens it, sent as `{:long_press, {tag, true}}` under the `on_open_change` tag. |
   | `disabled` | boolean | `false` | Wires no handler, so the trigger is inert. |
   | `chevron` | boolean | `true` | Show the ▾/▴ indicator on the trigger. |
   | `side` | `:top` `:right` `:bottom` `:left` | `:bottom` | Which side of the trigger the panel takes. |
@@ -168,11 +168,10 @@ defmodule MobMishka.Components.MishkaPopover do
 
   ## iOS
 
-  There is no anchored primitive on iOS: `deps/mob/ios` is a checksum-locked hex
-  dependency and cannot be edited from this repo. An unknown node type there
-  falls through to `MobNodeTypeColumn`, so an anchored panel degrades to the old
-  stacked accordion — it neither errors nor blanks. Floating is Android-only for
-  now, and `IOS_TODO.md` §17 records it.
+  iOS has had the anchored primitive too since mob 0.8.3 (MOB-190,
+  `MobAnchored.swift`), so the panel floats over the page there as well rather
+  than stacking. Where iOS places the panel against the trigger is still being
+  fixed in mob.
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/popover
   """
@@ -187,6 +186,9 @@ defmodule MobMishka.Components.MishkaPopover do
 
   # The web's gap between trigger and panel, read as dp instead of px.
   @side_offset 8
+
+  # The beak's invisible twin: same glyph, same size, no ink.
+  @clear 0x00_00_00_00
 
   @trigger_slot :mishka_popover_trigger
   @title_slot :mishka_popover_title
@@ -245,6 +247,11 @@ defmodule MobMishka.Components.MishkaPopover do
 
   Written bare it draws the glyph the `side` calls for, tinted like the panel.
   Give it a character or markup of your own and that is drawn instead.
+
+  A glyph is centred on the panel's edge without widening the panel. Markup is
+  placed as given at the panel's leading edge (above or below it): a node has
+  no opacity, so there is no invisible copy to centre it against. Give the
+  popover a `width` and size the markup to it to centre markup.
   """
   @spec arrow(String.t() | map() | [map()] | nil) :: map()
   def arrow(content \\ nil)
@@ -302,7 +309,7 @@ defmodule MobMishka.Components.MishkaPopover do
     align = one_of(Map.get(props, :align), @aligns, :start)
 
     trigger = trigger_part(props, id, open?, side)
-    panel = if open?, do: [revealed(props, content, id, side, align)], else: []
+    panel = if open?, do: [revealed(props, content, id, side)], else: []
 
     # The panel is not a sibling of the trigger — it is the second child of an
     # :anchored node, which draws it in its own window over the page. In flow it
@@ -587,61 +594,96 @@ defmodule MobMishka.Components.MishkaPopover do
   # The panel and its beak, as ONE node — the anchored node takes exactly two
   # children, and the gap between panel and trigger is now `side_offset` on the
   # anchor rather than a :spacer sibling.
-  defp revealed(props, content, id, side, align) do
+  defp revealed(props, content, id, side) do
     surface =
       props
       |> Map.put(:id, panel_id(id))
       |> Map.put_new(:fill_width, false)
       |> panel(body(props, content, id))
 
-    case beak(props, id, side, align) do
-      [] ->
+    case beak(props, id, side) do
+      nil ->
         surface
 
       beak ->
         # The beak faces the trigger, so it leads on :bottom/:right and trails on
-        # :top/:left. The web centres its arrow on the POPUP (`left: 50%`), never
-        # on the trigger, which is what `aligned(_, :center)` says here.
-        parts = if side in [:top, :left], do: [surface] ++ beak, else: beak ++ [surface]
-        axis = if side in [:left, :right], do: :row, else: :column
-
-        %{type: axis, props: %{}, children: parts}
+        # :top/:left.
+        attach(surface, beak, side)
     end
+  end
+
+  # Beside the panel (:left / :right) a Row's default vertical centring already
+  # centres the beak on the panel's edge.
+  defp attach(surface, {beak, _reserve}, side) when side in [:left, :right] do
+    parts = if side == :left, do: [surface, beak], else: [beak, surface]
+    %{type: :row, props: %{}, children: parts}
+  end
+
+  # Above or below, the beak is centred on the PANEL, which is what the web does
+  # (`left: 50%` on the arrow, never an offset from the trigger). A Column has
+  # no horizontal alignment on either platform, so the centring is a hugging Box
+  # — a z-stack sized by its widest child — holding the panel in a Column with
+  # an invisible twin of the glyph where the beak goes, and the beak itself
+  # aligned to the matching edge.
+  #
+  # It used to be the Column with the beak wrapped in a `fill_width` Box. A
+  # child that fills makes a wrapping Column as wide as its widest constraint,
+  # and inside the popup window that is the window cap: every popover with an
+  # arrow was screen-wide, on Android as well as iOS.
+  defp attach(surface, {beak, reserve}, side) when is_map(reserve) do
+    {column, align} =
+      if side == :top,
+        do: {[surface, reserve], :bottom_center},
+        else: {[reserve, surface], :top_center}
+
+    %{
+      type: :box,
+      props: %{fill_width: false, align: align},
+      children: [%{type: :column, props: %{}, children: column}, beak]
+    }
+  end
+
+  # Markup has no invisible twin — there is no opacity on a node — so it sits
+  # in the Column as given, at the panel's leading edge. Give it the panel's
+  # `width` and centre within that to centre it.
+  defp attach(surface, {beak, nil}, side) do
+    parts = if side == :top, do: [surface, beak], else: [beak, surface]
+    %{type: :column, props: %{}, children: parts}
   end
 
   # The web's arrow is a styled span the positioner rotates to face the trigger.
   # With the side known up front a glyph says the same thing, tinted like the
   # panel so it reads as the panel's own beak rather than a character.
-  defp beak(props, id, side, _align) do
+  #
+  # Returns `{beak, reserve}`: for a glyph the reserve is the same Text in a
+  # clear ink with no tag, so it takes exactly the beak's room on each platform
+  # without measuring anything.
+  defp beak(props, id, side) do
     if truthy?(Map.get(props, :arrow, false)) do
-      node = beak_node(Map.get(props, :arrow), props, id, side)
-
-      # Centred on the PANEL, which is what the web does (`left: 50%` on the
-      # arrow, never an offset from the trigger). Before anchoring existed the
-      # panel shared a full-width parent with the trigger, so the arrow had to
-      # be aligned the same way the panel was; now it belongs to the panel.
-      [if(side in [:top, :bottom], do: aligned(node, :center), else: node)]
-    else
-      []
+      beak_node(Map.get(props, :arrow), props, id, side)
     end
   end
 
   defp beak_node(glyph, props, id, _side) when is_binary(glyph) do
     fill = Map.get(props, :background) || :surface
+    text = ~MOB"<Text text={glyph} text_size={:sm} text_color={fill} />"
 
-    put(~MOB"<Text text={glyph} text_size={:sm} text_color={fill} />", :id, arrow_id(id))
+    {put(text, :id, arrow_id(id)), put(text, :text_color, @clear)}
   end
 
   defp beak_node([_ | _] = nodes, _props, id, _side) do
-    put(
-      ~MOB"""
-      <Column>
-        {nodes}
-      </Column>
-      """,
-      :id,
-      arrow_id(id)
-    )
+    beak =
+      put(
+        ~MOB"""
+        <Column>
+          {nodes}
+        </Column>
+        """,
+        :id,
+        arrow_id(id)
+      )
+
+    {beak, nil}
   end
 
   # `arrow={true}`, or a bare `<MishkaPopoverArrow />`: the side decides.
@@ -742,15 +784,6 @@ defmodule MobMishka.Components.MishkaPopover do
   end
 
   # ── Layout plumbing ─────────────────────────────────────────────────────────
-
-  # The beak sits inside the panel's own stack, so the only alignment left is
-  # centring it across that stack — the web's `left: 50%` on the arrow. A Column
-  # has no horizontal alignment on either platform, hence the Box.
-  defp aligned(node, align) do
-    %{type: :box, props: %{fill_width: true, align: box_align(align)}, children: [node]}
-  end
-
-  defp box_align(:center), do: :top_center
 
   defp spacer(size), do: %{type: :spacer, props: %{size: size}, children: []}
 

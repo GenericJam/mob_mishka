@@ -64,9 +64,22 @@ defmodule MobMishka.Components.MishkaTooltip do
   you get the bare bubble for a screen that places its own, and `offset_x` /
   `offset_y` move it directly.
 
-  iOS has no `:anchored` primitive. An unknown node type falls through to
-  `MobNodeTypeColumn` there, so the bubble degrades to the old stack rather than
-  erroring or blanking — see `IOS_TODO.md` §17.
+  ## Taps outside the bubble go to the page
+
+  An open tooltip is not modal. It used to be: it always handed the anchored
+  node an `on_dismiss`, and an open anchored node with a dismiss handler covers
+  the page to catch outside taps (a full-screen clear layer on iOS, a focusable
+  popup on Android) and swallows each one to report it. So while any hint was
+  showing, the next tap anywhere — on a button, on another tooltip's trigger —
+  only closed that hint (or, with two open, toggled whichever was drawn last),
+  and never reached what the finger was on. That is the opposite of what a hint
+  is for.
+
+  So outside taps pass through by default, and a bubble closes from a tap on
+  itself (`close_on_tap`), a second hold on its trigger, or the screen changing
+  `open`. Set `close_on_outside_tap={true}` to get tap-anywhere-to-close back,
+  knowing the tap that closes it is consumed: it closes the hint and does
+  nothing else.
 
   ## It is deliberately not the Popover shell
 
@@ -86,9 +99,10 @@ defmodule MobMishka.Components.MishkaTooltip do
   | `align_offset` | number | `0` | Nudge along the alignment axis. Positive pushes inward on `:end`. |
   | `arrow` | boolean | `false` | Draw a triangle pointing back at the trigger. |
   | `disabled` | boolean | `false` | Never opens, and wires no handler. |
-  | `on_open_change` | event tag | — | Sent as `{:tap, {tag, next_open?}}`. |
+  | `on_open_change` | event tag | — | A hold on the trigger sends `{:long_press, {tag, next_open?}}`; a tap on the bubble (or outside it, with `close_on_outside_tap`) sends `{:tap, {tag, false}}`. |
   | `on_tap` | event tag | — | The wrapped control's own tap, sent as `{:tap, tag}`. |
   | `close_on_tap` | boolean | `true` | Tapping the bubble dismisses it. |
+  | `close_on_outside_tap` | boolean | `false` | A tap anywhere outside the open bubble dismisses it — and is consumed, so it reaches nothing else. Off by default: see "Taps outside the bubble go to the page". |
   | `background` | color token / ARGB int | `0xFF111827` | Bubble fill — dark by default so it reads over any surface. |
   | `color` | color token / ARGB int | `0xFFFFFFFF` | Hint colour. |
   | `text_size` | size token | `:sm` | Hint size. |
@@ -175,8 +189,14 @@ defmodule MobMishka.Components.MishkaTooltip do
         <MishkaActionIcon icon="⧉" />
       </MishkaTooltip>
 
-      def handle_info({:tap, {{:tip, which}, open?}}, socket) do
+      # A hold asks to open (or, on an open tip, to close)…
+      def handle_info({:long_press, {{:tip, which}, open?}}, socket) do
         {:noreply, Mob.Socket.assign(socket, :tip, if(open?, do: which, else: nil))}
+      end
+
+      # …and a tap on the bubble asks to close.
+      def handle_info({:tap, {{:tip, _which}, false}}, socket) do
+        {:noreply, Mob.Socket.assign(socket, :tip, nil)}
       end
   """
   @spec tooltip(map() | keyword(), [map()]) :: map()
@@ -203,7 +223,8 @@ defmodule MobMishka.Components.MishkaTooltip do
   end
 
   defp anchored(props, children, side, true) do
-    Anchored.anchor(trigger(props, children), bubble(props, side), anchor_opts(props, side))
+    opts = [on_dismiss: outside(props)] ++ anchor_opts(props, side)
+    Anchored.anchor(trigger(props, children), bubble(props, side), opts)
   end
 
   defp anchor_opts(props, side) do
@@ -215,12 +236,18 @@ defmodule MobMishka.Components.MishkaTooltip do
       side_offset: gap(props),
       align_offset: Map.get(props, :align_offset),
       panel_offset_x: x,
-      panel_offset_y: y,
-      # A tap outside the bubble asks for the state the tooltip wants next,
-      # exactly as a tap ON it does when close_on_tap is set. Before this an
-      # open hint could only be dismissed by finding the bubble itself.
-      on_dismiss: Event.handler(Map.get(props, :on_open_change), false)
+      panel_offset_y: y
     ]
+  end
+
+  # Wired only on request. An open anchored node with a dismiss handler covers
+  # the page with a tap-catching layer — a full-screen scrim on iOS, a focusable
+  # popup on Android — which made every open hint modal: the next tap anywhere
+  # closed it and went nowhere else.
+  defp outside(props) do
+    if truthy?(Map.get(props, :close_on_outside_tap, false)) do
+      Event.handler(Map.get(props, :on_open_change), false)
+    end
   end
 
   defp bubble(props, side) do

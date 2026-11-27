@@ -183,16 +183,47 @@ defmodule MobMishka.Components.MishkaPreviewCardTest do
       end
     end
 
-    test "align moves it along the edge with flexible spacers" do
-      weights = fn align ->
-        tree = MishkaPreviewCard.preview_card(%{id: "p", open: true, arrow: true, align: align})
-        row = find(tree, :row, fill_width: true)
-        Enum.map(row.children, &{&1.type, &1.props[:size], &1.props[:weight]})
+    test "align moves it along the edge without making the card fill" do
+      # It used to be a fill_width Row of flexible spacers. A filling child
+      # widens a wrapping Column to the popup window's cap, so every card with
+      # an arrow was screen-wide on Android as well as iOS. Now a hugging Box
+      # aligns it, inset 14dp at either end.
+      placed = fn side, align ->
+        tree =
+          MishkaPreviewCard.preview_card(%{
+            id: "p",
+            open: true,
+            arrow: true,
+            side: side,
+            align: align
+          })
+
+        holder =
+          Enum.find(
+            flatten(tree),
+            &(&1.type == :box and match?([%{type: :column}, _], &1.children))
+          )
+
+        [column, beak] = holder.children
+
+        refute Enum.any?(flatten(holder) -- flatten(popup(tree)), & &1.props[:fill_width])
+        {holder.props[:align], beak.props[:padding_left], beak.props[:padding_right], column}
       end
 
-      assert [{:spacer, 14, nil}, {:text, nil, nil}, {:spacer, nil, 1}] = weights.(:start)
-      assert [{:spacer, nil, 1}, {:text, nil, nil}, {:spacer, nil, 1}] = weights.(:center)
-      assert [{:spacer, nil, 1}, {:text, nil, nil}, {:spacer, 14, nil}] = weights.(:end)
+      assert {nil, 14, nil, _} = placed.(:bottom, :start)
+      assert {:top_center, nil, nil, _} = placed.(:bottom, :center)
+      assert {:top_trailing, nil, 14, _} = placed.(:bottom, :end)
+      assert {:bottom_leading, 14, nil, _} = placed.(:top, :start)
+      assert {:bottom_center, nil, nil, _} = placed.(:top, :center)
+      assert {:bottom_trailing, nil, 14, _} = placed.(:top, :end)
+
+      # The column reserves the arrow's room with an untagged, clear twin, on
+      # the edge that faces the trigger.
+      {_, _, _, column} = placed.(:bottom, :center)
+      assert [%{type: :text, props: twin}, %{props: %{id: "p-popup-bottom"}}] = column.children
+      assert twin.text == "▲"
+      assert twin.text_color == 0x00000000
+      refute Map.has_key?(twin, :id)
     end
 
     test "beside the trigger the arrow rides with the card, not with a Row" do

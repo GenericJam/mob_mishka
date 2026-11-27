@@ -68,9 +68,9 @@ defmodule MobMishka.Components.MishkaOverflowList do
   The `+N` pill sets `fill_width={false}`. A Box given neither a `width` nor
   `fill_width` **fills its parent**, which turned the counter into a bar
   stretching across the rest of the row instead of a pill hugging its label —
-  the same bug `MobMishka.Components.MishkaPill` documents. iOS's `MobBox` never
-  reads `fill_width` at all (`IOS_TODO.md` item 6), so this is an Android fix
-  until that lands.
+  the same bug `MobMishka.Components.MishkaPill` documents. iOS's `MobBox` reads
+  `fill_width` too as of mob 0.9.32 (`IOS_TODO.md` item 6, now fixed), so the
+  counter hugs on both platforms.
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/overflow-list
   """

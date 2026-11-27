@@ -316,6 +316,8 @@ For composite verification, `Mob.Test.tap/2` (by tag) is faster than gesture-dri
 - **Composing another composite by calling its module directly instead of via `~MOB` sigil.** Both are legal, but the sigil path exercises the `Mob.Composite` registry and matches how the app actually uses your composite. Prefer sigil-form in tests.
 - **Assuming iOS SwiftUI convention matches Compose numeric convention.** They can differ (see MOB-256). Verify on device, not on paper.
 - **A composite that assumes `:on_change` is set.** Screens legitimately render composites in a "read only" state with no handler. Every event prop must degrade to a no-op if the handler is nil — `Event.handler/1` returns `nil` in that case and the drawn node's `on_tap` / `on_drag` must handle that.
+- **`<Spacer size={0} />` as "nothing".** iOS and the Android bridge mob_new generates today read a Spacer of size 0 or less as FLEXIBLE (fill the rest), not as an empty gap. Emit no node at all (`[]`, `nil`, or `:if={size > 0}`) — MOB-571, where a depth-0 tree row's size-0 indent spacer inverted the indentation.
+- **A `fill_width` child inside a panel that should hug.** Inside an anchored popup window a filling child widens its wrapping parent to the window cap, on Android as well as iOS. To centre something on a content-sized sibling, use a hugging Box (z-stack) plus a clear twin to reserve its room — see `decisions/2026-11-27-arrow-centred-by-clear-twin.md`.
 
 ---
 

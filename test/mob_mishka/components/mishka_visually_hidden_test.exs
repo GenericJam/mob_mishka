@@ -6,13 +6,14 @@ defmodule MobMishka.Components.MishkaVisuallyHiddenTest do
   doctest MishkaVisuallyHidden
 
   describe "visually_hidden/2" do
-    test "returns a Spacer node with size 0 regardless of props or children" do
-      # Documenting the honest behaviour: any props / children are dropped and
-      # the render is an empty Spacer. The children carry the caller's intent
-      # (which becomes correct for free the day Mob grows an accessibility
-      # label prop), so accepting them without erroring is deliberate.
-      node = MishkaVisuallyHidden.visually_hidden(%{label: "skip"}, [%{type: :text}])
-      assert node == %{type: :spacer, props: %{size: 0}, children: []}
+    test "returns no node at all, regardless of props or children" do
+      # Any props / children are dropped. The children carry the caller's
+      # intent (which becomes correct for free the day Mob grows an
+      # accessibility label prop), so accepting them without erroring is
+      # deliberate. It is `[]`, not a `size: 0` Spacer: iOS and mob_new's
+      # current Android bridge read a Spacer of size <= 0 as flexible, so the
+      # old "nothing" took a share of its parent Row or Column.
+      assert MishkaVisuallyHidden.visually_hidden(%{label: "skip"}, [%{type: :text}]) == []
     end
 
     test "expand/3 delegates to visually_hidden/2" do

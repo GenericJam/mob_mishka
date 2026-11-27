@@ -134,6 +134,10 @@ defmodule MobMishka.Components.MishkaAlphaSlider do
     end
   end
 
+  # Each band is exactly `@band` wide. The hue slider overlaps its bands by 1
+  # because they are opaque and the overlap only closes a hairline; these are
+  # translucent, so an overlapping column is painted twice and shows as a
+  # darker seam at every band edge.
   defp fade(width, height, rgb) do
     color = Color.argb(rgb)
 
@@ -141,7 +145,7 @@ defmodule MobMishka.Components.MishkaAlphaSlider do
     |> Stream.iterate(&(&1 + @band))
     |> Stream.take_while(&(&1 < width))
     |> Enum.map(fn x ->
-      Mob.Canvas.rect(x, 0, @band + 1, height,
+      Mob.Canvas.rect(x, 0, @band, height,
         color: color,
         fill: true,
         opacity: fraction(x, width, @band)

@@ -8,6 +8,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+Composite fixes from the iOS check (MOB-571). Everything below changes Android rendering too unless marked iOS.
+
+### Added
+- `MishkaTooltip`: `close_on_outside_tap` (default `false`) — opt in to "a tap anywhere outside the open bubble closes it". See Changed.
+- `MishkaMenu`: `item_icon_width` (default `24`); `MishkaNavLink`: `icon_width` (default `24`).
+
+### Changed
+- `MishkaTooltip` is no longer modal. It used to pass `on_dismiss` to its anchored node whenever `on_open_change` was set, which on both platforms covers the page with a layer that swallows the next tap anywhere; so any open hint ate the next tap, and with two open a tap could toggle the other one. Pass `close_on_outside_tap={true}` to get outside-tap dismissal back (`decisions/2026-11-27-tooltip-not-modal-by-default.md`).
+- `MishkaVisuallyHidden` returns `[]` (no node) instead of a `size: 0` Spacer.
+- `MishkaMenu` and `MishkaNavLink`: a glyph-string icon sits centred in a fixed-width slot, so labels line up. Emoji keep their own colours (documented); only symbol glyphs take the ink.
+
+### Fixed
+- `MishkaTree` / `MishkaTreeSelect`: indentation was inverted at depth 0 — the row's `size: 0` indent Spacer is flexible on iOS and on mob_new's current Android bridge, so it pushed root labels to mid-row. No zero-size Spacer is emitted any more (also `MishkaSplitter`'s blank pane and `MishkaVisuallyHidden`).
+- `MishkaDock`: the bar's documented default `background` (`:surface_raised`) is applied.
+- `MishkaListItem`: `align: :leading` / `:top` map to the Row's `top` (and `:trailing` / `:bottom` to `bottom`); neither renderer knows `leading`, so it fell back to centre. The doc lists the real values.
+- `MishkaCard`: a string `title` gets `text_color: :on_surface`; with no ink it drew black on the dark theme on iOS.
+- `MishkaColorPicker` value bands and `MishkaAlphaSlider` fade bands are drawn exactly one band wide; the `+1` overlap painted translucent edges twice and showed as dark seams.
+- `MishkaSplitter` stacked (`orientation: :vertical`): the grip is centred across the divider instead of sitting at the left edge.
+- `MishkaCalendar`: the agenda/day time cell uses `width`, not `min_width` (which no renderer reads), so rows line up.
+- `MishkaPopover` and `MishkaPreviewCard` with an arrow above or below the panel no longer stretch the panel to the window cap (the arrow sat in a `fill_width` wrapper). A glyph arrow is now placed by a hugging Box with a clear twin reserving its room (`decisions/2026-11-27-arrow-centred-by-clear-twin.md`); a markup arrow sits at the panel's leading edge. On iOS the panel stays cap-wide until mob's Column stops filling (MOB-564).
+- Docs: a hold arrives as `{:long_press, …}`, not `{:tap, …}` (`MishkaTooltip`, `MishkaPopover`, `MishkaPreviewCard`, `MishkaToolbar`, `MishkaThemeIcon`, `MishkaContextMenu`); iOS has had `:anchored` since mob 0.8.3; iOS reads `weight` as fill-the-rest, not proportionally; `MishkaCode` no longer promises SF Mono (iOS falls back to the system font until mob resolves `"monospace"`, MOB-566); notes on former IOS_TODO items 1, 2, 6, 8 and 9 (fixed in mob 0.9.32) are updated.
+
 ## [0.1.6] - 2026-11-21
 
 Catches up with mishka_chelekom `776c535b` (range `c3235534..776c535b`).

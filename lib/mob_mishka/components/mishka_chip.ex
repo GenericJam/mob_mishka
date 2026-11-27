@@ -140,16 +140,17 @@ defmodule MobMishka.Components.MishkaChip do
     # it is not the same as being heard: the generated bridge never READ the
     # prop for a box on either platform, branching on width alone, so a Box hugs
     # only when `width` is a number. Android's box case reads it now
-    # (`MobBridge.kt`, the "box" branch); iOS's `MobBox` still does not
-    # (development/mob/IOS_TODO.md §6), and a vendored bridge hugs only once the
-    # same one-line change lands in it.
+    # (`MobBridge.kt`, the "box" branch), and so does iOS's `MobBox` as of mob
+    # 0.9.32 (`IOS_TODO.md` §6, now fixed); an older vendored bridge hugs only
+    # once the same change lands in it.
     #
-    # So the prop stays — it is correct the moment a bridge reads it and inert
-    # when one does not — and `width` is the escape hatch until then. A Button
-    # would read `fill_width` everywhere today, but Material3 gives a Button its
-    # own minimum size and content padding: the chips came out oversized,
-    # overflowed their row, and the last one was squeezed until its label
-    # vanished. Wrong size on every platform is worse than wrong width on one.
+    # So the prop stays — it is correct wherever a bridge reads it and inert
+    # where one does not — and `width` remains the escape hatch for an older
+    # bridge. A Button would read `fill_width` everywhere, but Material3 gives a
+    # Button its own minimum size and content padding: the chips came out
+    # oversized, overflowed their row, and the last one was squeezed until its
+    # label vanished. Wrong size on every platform is worse than wrong width on
+    # one.
     node = ~MOB"""
     <Box
       fill_width={false}

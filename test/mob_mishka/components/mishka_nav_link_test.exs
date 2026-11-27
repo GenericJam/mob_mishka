@@ -81,6 +81,25 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
       assert "›" in glyphs(tree)
     end
 
+    test "a glyph icon sits centred in a fixed-width slot, so labels line up" do
+      # A bare Text is as wide as its glyph; "✉" and "⚙" are not, so each
+      # label in a column of links started at a different x.
+      slot = fn props ->
+        tree = MishkaNavLink.nav_link(Map.merge(%{id: "n", label: "Mail"}, props), [])
+        Enum.find(find_all(tree, :box), &match?([%{props: %{id: "n-icon"}}], &1.children))
+      end
+
+      assert %{props: %{width: 24, align: :center}} = slot.(%{icon: "✉"})
+      assert slot.(%{icon: "⚙", icon_width: 32}).props.width == 32
+    end
+
+    test "an icon node keeps its own size, with no slot around it" do
+      avatar = %{type: :box, props: %{width: 40}, children: []}
+      tree = MishkaNavLink.nav_link(%{id: "n", label: "Mail", icon: avatar}, [])
+
+      refute Enum.any?(find_all(tree, :box), &(&1.props[:width] == 24))
+    end
+
     test "a parent's chevron wins over a custom trailing glyph" do
       child = MishkaNavLink.nav_link(%{label: "x"}, [])
       tree = MishkaNavLink.nav_link(%{label: "Mail", trailing: "›"}, [child])
@@ -510,13 +529,9 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
 
   describe "visually hidden" do
     test "renders nothing, because nothing it rendered could be announced" do
-      node =
-        MishkaVisuallyHidden.visually_hidden(%{}, [
-          %{type: :text, props: %{text: "screen reader only"}, children: []}
-        ])
-
-      assert node.type == :spacer
-      refute text(node) =~ "screen reader"
+      assert MishkaVisuallyHidden.visually_hidden(%{}, [
+               %{type: :text, props: %{text: "screen reader only"}, children: []}
+             ]) == []
     end
 
     test "announce?/0 reports the platform truth so callers can branch" do
@@ -554,8 +569,7 @@ defmodule MobMishka.Components.MishkaNavLinkTest do
             items: @items,
             value: :products,
             orientation: :vertical
-          ),
-          MishkaVisuallyHidden.visually_hidden()
+          )
         ] do
       assert_renderable(tree)
     end

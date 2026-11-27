@@ -110,7 +110,8 @@ defmodule MobMishka.Components.MishkaSeparator do
   ## Platform note
 
   Every gap below is in the `mob` dependency rather than here — see
-  `IOS_TODO.md` items 1, 11, 12 and 13. **Android is correct for all three
+  `IOS_TODO.md` items 11, 12 and 13 (item 1, below, is fixed in mob 0.9.32).
+  **Android is correct for all three
   variants**, the hairline softness above excepted, and that one is Material's
   behaviour rather than a bug.
 
@@ -129,22 +130,24 @@ defmodule MobMishka.Components.MishkaSeparator do
       component** — a `Box` has no opinion about its container's axis. It does
       not close item 12 itself: a bare `<Divider>` inside a `<Row>` is still
       wrong for every other caller, so that entry stays open;
-    * `weight` is read nowhere in the iOS renderer (item 13), so the two lines
-      cannot share the leftover width there. `render={:box}` sidesteps it, and
-      by item 13's own proposed remedy: a full-width `MobBox` already compiles
-      to `.frame(maxWidth: .infinity)`, and an HStack divides its leftover
-      evenly between two equally-flexible children. Reasoned from reading
-      `MobRootView.swift`, not confirmed against a device from this repo.
+    * as of mob 0.9.32 iOS honours `weight` as "fill the rest of the row" but
+      ignores the ratio (item 13's proportional part is still open), splitting
+      weighted siblings evenly. Both lines carry `weight: 1`, so an even split
+      is the one wanted, and `render={:box}` shares the leftover between them
+      there too. Reasoned from reading `MobRootView.swift` (`MobLayoutWeight`),
+      not confirmed against a device from this repo.
 
   ### The `Spacer` inside every `:box` rule
 
   A `:box` rule carries a `<Spacer size={thickness} />` that Android has no use
-  for. `MobBox` drops a Box's `height` unless the Box also has a `width` (item
-  1), so a childless full-width bar measures 0pt tall on iOS and draws nothing;
-  a sized Spacer gives the ZStack an intrinsic height to adopt. `mishka_skeleton`
+  for. It predates mob 0.9.32: `MobBox` used to drop a Box's `height` unless the
+  Box also had a `width` (item 1), so a childless full-width bar measured 0pt
+  tall on iOS and drew nothing; a sized Spacer gave the ZStack an intrinsic
+  height to adopt. 0.9.32 sizes a height-only Box, so the Spacer is no longer
+  needed there and is kept only because it is harmless. `mishka_skeleton`
   carries the same workaround for the same reason. On Android the Box's own
   `height` pins it and the Spacer is an invisible `thickness`-square child that
-  the background covers. Both can go once item 1 is fixed.
+  the background covers.
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/separator
   """
@@ -213,8 +216,8 @@ defmodule MobMishka.Components.MishkaSeparator do
   defp rule(color, thickness, :box), do: box_rule(color, thickness)
 
   # A filled rect, so every pixel row carries the full colour — see "A stroke is
-  # not a hairline". The Spacer is an iOS height workaround, not a design; see
-  # "The `Spacer` inside every `:box` rule".
+  # not a hairline". The Spacer is a pre-0.9.32 iOS height workaround, not a
+  # design; see "The `Spacer` inside every `:box` rule".
   defp box_rule(color, thickness) do
     ~MOB"""
     <Box fill_width={true} height={thickness} background={color}>

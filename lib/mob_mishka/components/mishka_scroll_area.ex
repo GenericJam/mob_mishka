@@ -36,14 +36,14 @@ defmodule MobMishka.Components.MishkaScrollArea do
 
   Not ported: the `*_class` attrs, which style a scrollbar the platform owns.
 
-  ## `height` is a no-op on iOS
+  ## `height` on iOS
 
-  The bound is a Box carrying `height` and `fill_width` but no `width`, and
-  iOS's `MobBox` applies `fixedHeight` only in the branch it takes when a width
-  IS set. So on iOS the viewport is unbounded and a vertical scroll area does
-  not scroll at all — which is exactly the failure the section above warns
-  about, except that there setting `height` fixes it and here it cannot.
-  `IOS_TODO.md` item 1 covers the underlying bug. Android honours the prop.
+  The bound is a Box carrying `height` and `fill_width` but no `width`. Before
+  mob 0.9.32 iOS's `MobBox` applied `fixedHeight` only in the branch it took
+  when a width WAS set, so on iOS the viewport was unbounded and a vertical
+  scroll area did not scroll at all. 0.9.32 sizes a height-only Box
+  (`IOS_TODO.md` item 1, now fixed), so `height` bounds the viewport on both
+  platforms.
 
   ## Scrolling it from a handler
 

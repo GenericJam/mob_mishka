@@ -35,7 +35,8 @@ defmodule MobMishka.Components.MishkaNavLink do
   | `id` | string | `nil` | Base of the row's test tags. No id, no tags. |
   | `label` | string | `nil` | The row's text. |
   | `description` | string | `nil` | A second line under the label. |
-  | `icon` | glyph string, node, or list | `nil` | Leading content — the web's slot. |
+  | `icon` | glyph string, node, or list | `nil` | Leading content — the web's slot. A glyph string sits centred in a fixed-width slot so labels line up; a node or list is used as given. |
+  | `icon_width` | number | `24` | Width of a glyph icon's slot. |
   | `trailing` | glyph string, node, or list | `nil` | Trailing content. Replaced by the chevron when it has children. |
   | `active` | boolean | `false` | Current-page styling — the web's `data-active`. |
   | `opened` | boolean | `nil` | Whether the nested group is expanded. Wins over `default_opened`. |
@@ -62,6 +63,9 @@ defmodule MobMishka.Components.MishkaNavLink do
   import Mob.Sigil
 
   alias MobMishka.Components.Event
+
+  # The width of the slot a glyph icon sits in, so labels line up.
+  @icon_width 24
 
   @doc "Composite expander (`<MishkaNavLink>`). Children are the nested links."
   @spec expand(map(), [map()], map()) :: map()
@@ -128,11 +132,15 @@ defmodule MobMishka.Components.MishkaNavLink do
   end
 
   defp leading(props, id) do
-    case glyph(Map.get(props, :icon), :base, tag(id, "-icon")) do
+    raw = Map.get(props, :icon)
+
+    case glyph(raw, :base, tag(id, "-icon")) do
       nil ->
         nil
 
       icon ->
+        icon = if is_map(raw) or is_list(raw), do: icon, else: icon_slot(icon, props)
+
         ~MOB"""
         <Row>
           {icon}
@@ -140,6 +148,21 @@ defmodule MobMishka.Components.MishkaNavLink do
         </Row>
         """
     end
+  end
+
+  # A bare glyph Text is as wide as the glyph, and "⚙", "✉" and "★" are not the
+  # same width, so in a column of links every label started at a different x.
+  # A fixed-width slot, glyph centred, lines them up. A caller's own node keeps
+  # its own size: it was built to measure. The glyph's `:muted` ink tints a
+  # symbol but not an emoji, which is a colour glyph on both platforms.
+  defp icon_slot(icon, props) do
+    width = Map.get(props, :icon_width) || @icon_width
+
+    ~MOB"""
+    <Box width={width} align={:center} fill_width={false}>
+      {icon}
+    </Box>
+    """
   end
 
   defp labels(props, active?, disabled?, id) do

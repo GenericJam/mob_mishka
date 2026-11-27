@@ -39,8 +39,8 @@ defmodule MobMishka.Components.MishkaNavigationMenu do
   node (`MobMishka.Components.Anchored`), which
   `MobMishka.Components.MishkaPopover` is built on — but this component has not
   been moved onto it: the viewport is still one shared area in flow, with no
-  side to take and nothing to point an arrow at. `:anchored` is Android-only so
-  far; on iOS the node falls through to a column.
+  side to take and nothing to point an arrow at. Both platforms have had the
+  node since mob 0.8.3 (MOB-190).
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/navigation-menu
   """

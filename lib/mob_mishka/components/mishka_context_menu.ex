@@ -39,13 +39,13 @@ defmodule MobMishka.Components.MishkaContextMenu do
   `trigger/2` wraps whatever the actions belong to:
 
       <Column>
-        {MishkaContextMenu.trigger(:report, [row_content()])}
+        {MishkaContextMenu.trigger(:report, [row_content()], on_hold: :hold)}
         <MishkaContextMenu open={@open == :report} for_label="report.pdf" on_select={:act}>
           <MishkaMenuItem id={:rename} label="Rename" />
         </MishkaContextMenu>
       </Column>
 
-      def handle_info({:tap, {:hold, id}}, socket), do: {:noreply, assign(socket, :open, id)}
+      def handle_info({:long_press, {:hold, id}}, socket), do: {:noreply, assign(socket, :open, id)}
 
   Not ported: placement at the pointer, and `id` / `*_class`.
 
@@ -61,8 +61,10 @@ defmodule MobMishka.Components.MishkaContextMenu do
   @doc """
   Wrap the object the actions belong to, so holding it opens the menu.
 
-  `on_hold` is the event tag; the message is `{:tap, {tag, id}}`, the same shape
-  every other row-carrying component here uses, so one clause serves a list.
+  `on_hold` is the event tag; the message is `{:long_press, {tag, id}}` — a long
+  press always arrives as `:long_press`, never `:tap` — carrying the same
+  `{tag, id}` payload every other row-carrying component here uses, so one clause
+  serves a list.
 
       trigger(:report, [row()], on_hold: :hold, test_id: "row-report")
 

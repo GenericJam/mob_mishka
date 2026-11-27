@@ -2,7 +2,7 @@ defmodule MobMishka.Components.MishkaTooltipTest do
   # async: false — Mob.ScreenCase starts the globally-named `Mob.State`.
   use Mob.ScreenCase, async: false
 
-  alias MobMishka.Components.{MishkaPopover, MishkaTooltip}
+  alias MobMishka.Components.{Anchored, MishkaPopover, MishkaTooltip}
 
   # A trigger has to be SOMETHING, and what it is never matters to the tooltip.
   defp control, do: %{type: :text, props: %{text: "⧉"}, children: []}
@@ -184,6 +184,39 @@ defmodule MobMishka.Components.MishkaTooltipTest do
         )
 
       refute Map.has_key?(bubble(tree).props, :on_tap)
+    end
+
+    test "an open tooltip is not modal: outside taps are not caught by default" do
+      # A dismiss handler on an open anchored node covers the page with a
+      # tap-catching layer on both platforms, so wiring it by default made the
+      # next tap anywhere close the hint and reach nothing else.
+      tree = MishkaTooltip.tooltip(%{text: "x", open: true, on_open_change: :chg}, [control()])
+      node = Enum.find(flatten(tree), &(&1.type == :anchored))
+
+      refute Anchored.dismissible?(node)
+    end
+
+    test "close_on_outside_tap opts in to tap-anywhere-to-close" do
+      tree =
+        MishkaTooltip.tooltip(
+          %{text: "x", open: true, on_open_change: :chg, close_on_outside_tap: true},
+          [control()]
+        )
+
+      node = Enum.find(flatten(tree), &(&1.type == :anchored))
+
+      assert Anchored.dismissible?(node)
+      assert node.props.on_tap == {self(), {:chg, false}}
+    end
+
+    test "a closed tooltip never carries a dismiss handler, opted in or not" do
+      tree =
+        MishkaTooltip.tooltip(
+          %{text: "x", open: false, on_open_change: :chg, close_on_outside_tap: true},
+          [control()]
+        )
+
+      refute Anchored.dismissible?(Enum.find(flatten(tree), &(&1.type == :anchored)))
     end
   end
 

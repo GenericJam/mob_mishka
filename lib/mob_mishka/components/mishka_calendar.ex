@@ -71,6 +71,7 @@ defmodule MobMishka.Components.MishkaCalendar do
   | `empty` | node | unset | Drawn by `:day` and `:agenda` when there is nothing. |
   | `week_*`, `lane_*`, `block_*` | geometry and tone | neutral | The week's gaps, heading card and block card. |
   | `card_*`, `row_*`, `time_*`, `title_*`, `meta_*`, `duration_*`, `rule_color` | geometry and tone | neutral | The day and agenda rows. |
+  | `time_width` | number | `44` | The time column's FIXED width, so every row's rail and title line up. 44 fits `"09:00"` at the default `time_size`; widen it for 12-hour times (`"11:30 PM"`) or large type, or the time is cut off with "…". |
   | `section_label_*`, `section_gap` | type and spacing | neutral | The agenda's day headings. |
   | `weekday_labels` | list of 7 strings | `[]` | Column headings built by the component. |
   | `weekday_nodes` | list of 7 nodes | `[]` | Headings used as given — for per-letter type. Wins over labels. |
@@ -333,7 +334,9 @@ defmodule MobMishka.Components.MishkaCalendar do
     end
   end
 
-  defp day_rows([], props), do: Map.get(props, :empty) || spacer(0)
+  # An empty Column, not a `size: 0` Spacer: iOS and mob_new's current Android
+  # bridge read a Spacer of size <= 0 as flexible.
+  defp day_rows([], props), do: Map.get(props, :empty) || ~MOB(<Column />)
   defp day_rows(rows, props), do: rows_card(rows, props)
 
   # A cluster timeline: each cluster carries its own clash marker, clock
@@ -445,6 +448,10 @@ defmodule MobMishka.Components.MishkaCalendar do
       leading: Map.get(row, :leading)
     }
 
+    # The time cell is a fixed `width`, not `min_width`: no renderer reads
+    # `min_width`, so each cell took its own text's width (and on iOS, where a
+    # Column with no width fills, an even share of the row) and the rails and
+    # titles of consecutive rows did not line up.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -455,7 +462,7 @@ defmodule MobMishka.Components.MishkaCalendar do
         on_tap={@tap}
         id={@id}
       >
-        <Column min_width={@time_width}>
+        <Column width={@time_width}>
           <Text
             text={@time}
             font={@time_family}
@@ -535,7 +542,7 @@ defmodule MobMishka.Components.MishkaCalendar do
     |> scrub_nil([:font])
   end
 
-  defp rule_node(nil), do: spacer(0)
+  defp rule_node(nil), do: nil
 
   defp rule_node(color) do
     assigns = %{color: color}
@@ -553,7 +560,7 @@ defmodule MobMishka.Components.MishkaCalendar do
     sections = Map.get(props, :sections) || []
 
     if sections == [] do
-      Map.get(props, :empty) || spacer(0)
+      Map.get(props, :empty) || ~MOB(<Column />)
     else
       gap = Map.get(props, :section_gap) || 18
 

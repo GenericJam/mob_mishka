@@ -3,9 +3,11 @@ defmodule MobMishka.Components.MishkaCode do
   Native Mob port of Mishka Chelekom's **headless Code** — inline code and code
   blocks.
 
-  Mob's `Text` takes a `font` prop that falls back to a system family name, so
-  `"monospace"` gets the platform's real mono face (Roboto Mono / SF Mono) rather
-  than an approximation.
+  Mob's `Text` takes a `font` prop that falls back to a system family name.
+  Android resolves `"monospace"` to the platform's mono face. iOS does not yet:
+  mob 0.9.32 logs "[mob/font] none of (monospace) resolved" and draws the system
+  font, so code is proportional there until mob resolves `"monospace"`
+  (MOB-566).
 
   ## Inline and block are different components wearing one name
 

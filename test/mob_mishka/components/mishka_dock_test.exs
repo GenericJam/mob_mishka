@@ -29,6 +29,11 @@ defmodule MobMishka.Components.MishkaDockTest do
       refute Map.has_key?(bar.props, :border_width)
     end
 
+    test "the bar is filled :surface_raised unless told otherwise, as documented" do
+      [bar] = MishkaDock.dock(%{}, []).children
+      assert bar.props.background == :surface_raised
+    end
+
     test "height and corner_radius are overridable" do
       node = MishkaDock.dock(%{height: 56, corner_radius: 28}, [])
 

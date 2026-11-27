@@ -217,9 +217,10 @@ defmodule MobMishka.Components.MishkaDrawer do
   (`MobRootView.swift`).
 
   The edge-push filler is a `Spacer` carrying `weight: 1`: iOS `Spacer()` fills
-  on its own (weight ignored), while Android's `Spacer` is a fixed-size box that
-  needs `weight` to flex — without it, right/bottom drawers render at the wrong
-  edge on Android. See `flex_spacer/0`.
+  on its own (mob 0.9.32 does read `weight` there, as fill-the-rest, which adds
+  nothing to a Spacer that already flexes), while Android's `Spacer` is a
+  fixed-size box that needs `weight` to flex — without it, right/bottom drawers
+  render at the wrong edge on Android. See `flex_spacer/0`.
 
   Note the overlay sits inside the top safe-area inset (the framework doesn't
   opt nodes out of it), so the panel starts just below the status bar rather
@@ -1099,10 +1100,11 @@ defmodule MobMishka.Components.MishkaDrawer do
 
   # A flex filler that pushes the panel to the far edge. It must fill remaining
   # space on BOTH platforms, and the mechanism differs: iOS `Spacer()` (size-less)
-  # already fills but ignores `weight`; Android's Spacer is a FIXED-size box
-  # (size-less = zero) and needs `weight` to flex. Carrying both makes one filler
-  # work everywhere. Without this, right/bottom drawers render at the wrong edge
-  # on Android (the panel collapses to the start).
+  # already fills, and the fill-the-rest `weight` iOS honours as of mob 0.9.32
+  # changes nothing for it; Android's Spacer is a FIXED-size box (size-less =
+  # zero) and needs `weight` to flex. Carrying both makes one filler work
+  # everywhere. Without this, right/bottom drawers render at the wrong edge on
+  # Android (the panel collapses to the start).
   defp flex_spacer, do: %{type: :spacer, props: %{weight: 1}, children: []}
   defp gap(size), do: %{type: :spacer, props: %{size: size}, children: []}
   defp empty, do: %{type: :column, props: %{}, children: []}

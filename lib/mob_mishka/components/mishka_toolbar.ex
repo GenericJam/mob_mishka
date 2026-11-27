@@ -106,7 +106,7 @@ defmodule MobMishka.Components.MishkaToolbar do
   | `disabled` | boolean | `false` | Disables every item in the bar. |
   | `focusable_when_disabled` | boolean | `true` | A disabled item still answers a long press. |
   | `on_select` | event tag (atom) | — | `{:tap, {tag, item_id}}` from a button or link. |
-  | `on_hold` | event tag (atom) | — | `{:tap, {tag, item_id}}` from a long press. |
+  | `on_hold` | event tag (atom) | — | `{:long_press, {tag, item_id}}` from a long press. |
   | `on_input` | event tag (atom) | — | `{:change, {tag, item_id}, value}` from an input. |
   | `on_overflow` | event tag (atom) | — | `{:tap, tag}` from the `⋯`. |
   | `hint` | item id | `nil` | Prints that item's `label` under the strip. |
@@ -138,16 +138,17 @@ defmodule MobMishka.Components.MishkaToolbar do
   to a fixed `:width` (160 by default) — which is what a scrolling strip wants
   anyway, since nothing inside one should be flexible.
 
-  ## What iOS does not do yet
+  ## iOS
 
-  Three of this component's layout guarantees are Android-only, all for reasons
-  that live in `IOS_TODO.md` rather than here. `weight` is read nowhere in
-  `MobRootView.swift` (item 13), so the measurement order above is not enforced.
-  `MobBox` never reads `fill_width` (item 6), so a group cluster fills the strip
-  instead of hugging its items — the same bug that makes a chip full-width there.
-  And `Text` has no `max_lines` (item 9), so an over-packed strip stacks letters
-  vertically rather than ellipsising. `height` is likewise dropped unless a width
-  is also set (item 1), which is what a vertical `overflow: :scroll` needs.
+  As of mob 0.9.32 the iOS renderer honours `weight` as "fill the rest of the
+  parent's axis", so an input's `weight: 1` box takes the remainder there too. It
+  ignores the ratio — two weighted siblings split evenly whatever their weights —
+  but every input carries the same `weight: 1`, so an even split is the one
+  wanted. The other gaps this section used to list are fixed in 0.9.32 as well:
+  `MobBox` reads `fill_width` (`IOS_TODO.md` item 6), so a group cluster's
+  `fill_width={false}` hugs its items; `Text` honours `max_lines` (item 9); and a
+  Box with only a `height` is sized (item 1), which is what a vertical
+  `overflow: :scroll` needs.
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/toolbar
   """
@@ -476,7 +477,7 @@ defmodule MobMishka.Components.MishkaToolbar do
       </MishkaToolbar>
 
       def handle_info({:tap, {:act, id}}, socket), do: {:noreply, act(socket, id)}
-      def handle_info({:tap, {:hint, id}}, socket), do: {:noreply, assign(socket, :hint, id)}
+      def handle_info({:long_press, {:hint, id}}, socket), do: {:noreply, assign(socket, :hint, id)}
   """
   @spec toolbar(map() | keyword(), [map()]) :: map()
   def toolbar(props \\ %{}, children \\ []) do

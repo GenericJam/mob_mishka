@@ -208,6 +208,29 @@ defmodule MobMishka.Components.MishkaPopoverTest do
       assert tinted.props.text_color == 0xFF1E1B4B
     end
 
+    test "an arrow does not make the panel fill: the beak is centred by a hugging stack" do
+      # The beak used to sit in a `fill_width` Box inside the panel's Column. A
+      # filling child widens a wrapping Column to its widest constraint — in the
+      # popup window, the window cap — so every arrowed popover was screen-wide,
+      # Android included.
+      for {side, align} <- [bottom: :top_center, top: :bottom_center] do
+        tree = open(%{id: "p", arrow: true, side: side, trigger: "Go"})
+        arrow = node_with_id(tree, "p-arrow")
+        holder = Enum.find(flatten(tree), &(arrow in &1.children))
+
+        assert %{type: :box, props: %{fill_width: false, align: ^align}} = holder
+        assert [%{type: :column, props: column_props} = column, ^arrow] = holder.children
+        refute column_props[:fill_width]
+
+        # The column holds the panel and an untagged, clear twin of the glyph,
+        # which reserves the beak's room on the side facing the trigger.
+        twin = %{arrow | props: %{arrow.props | text_color: 0x00000000} |> Map.delete(:id)}
+        panel = node_with_id(tree, "p-panel")
+        expected = if side == :top, do: [panel, twin], else: [twin, panel]
+        assert column.children == expected
+      end
+    end
+
     test "parts appear only when asked for" do
       tree = open(%{id: "p"})
 
