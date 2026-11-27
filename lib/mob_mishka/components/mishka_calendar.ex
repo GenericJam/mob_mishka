@@ -71,7 +71,7 @@ defmodule MobMishka.Components.MishkaCalendar do
   | `empty` | node | unset | Drawn by `:day` and `:agenda` when there is nothing. |
   | `week_*`, `lane_*`, `block_*` | geometry and tone | neutral | The week's gaps, heading card and block card. |
   | `card_*`, `row_*`, `time_*`, `title_*`, `meta_*`, `duration_*`, `rule_color` | geometry and tone | neutral | The day and agenda rows. |
-  | `time_width` | number | `44` | The time column's FIXED width, so every row's rail and title line up. 44 fits `"09:00"` at the default `time_size`; widen it for 12-hour times (`"11:30 PM"`) or large type, or the time is cut off with "…". |
+  | `time_width` | number | `52` | The time column's FIXED width, so every row's rail and title line up. 52 fits a 12-hour time (`"11:30 PM"`, `"12:45 AM"`) at the default `time_size` of 11 on both platforms (measured from the font files: ≈45pt in SF Pro, 46–48dp in Roboto). Widen it for a larger `time_size` or a large system font scale, or the time is cut off with "…". |
   | `section_label_*`, `section_gap` | type and spacing | neutral | The agenda's day headings. |
   | `weekday_labels` | list of 7 strings | `[]` | Column headings built by the component. |
   | `weekday_nodes` | list of 7 nodes | `[]` | Headings used as given — for per-letter type. Wins over labels. |
@@ -432,7 +432,9 @@ defmodule MobMishka.Components.MishkaCalendar do
       trailing: trailing_node(Map.get(row, :duration), props),
       rail: Map.get(row, :colour) || Map.get(props, :row_rail) || :primary,
       rule: if(rule?, do: Map.get(props, :rule_color) || :border, else: nil),
-      time_width: Map.get(props, :time_width) || 44,
+      # 52, not upstream's 44: this is a real width now (it was `min_width`,
+      # which no renderer read), and 44 cut "11:30 PM" at 11sp to "11:30 P…".
+      time_width: Map.get(props, :time_width) || 52,
       time_size: Map.get(props, :time_size) || 11,
       time_color: Map.get(props, :time_color) || :muted,
       time_family: Map.get(row, :font_family) || Map.get(props, :time_font_family),

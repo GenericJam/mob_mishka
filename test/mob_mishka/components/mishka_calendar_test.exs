@@ -493,19 +493,21 @@ defmodule MobMishka.Components.MishkaCalendarViewsTest do
         %{label: "TODAY", items: [%{time: "9:00", title: "a"}, %{time: "11:30 PM", title: "b"}]}
       ]
 
-      node = MishkaCalendar.calendar(%{view: :agenda, sections: sections, time_width: 52})
+      node = MishkaCalendar.calendar(%{view: :agenda, sections: sections, time_width: 60})
+      default = MishkaCalendar.calendar(%{view: :agenda, sections: sections})
 
-      cells =
-        node
+      widths = fn tree ->
+        tree
         |> find_all(:column)
         |> Enum.filter(&match?([%{type: :text, props: %{text_size: 11}}], &1.children))
+        |> Enum.map(&{&1.props[:width], Map.has_key?(&1.props, :min_width)})
+      end
 
-      assert [_, _] = cells
+      assert widths.(node) == [{60, false}, {60, false}]
 
-      assert Enum.all?(
-               cells,
-               &(&1.props[:width] == 52 and not Map.has_key?(&1.props, :min_width))
-             )
+      # The default fits a 12-hour time at 11sp (46–48dp in Roboto, ≈45pt in SF
+      # Pro); upstream's 44 cut "11:30 PM" to "11:30 P…" once it was a real width.
+      assert widths.(default) == [{52, false}, {52, false}]
     end
 
     test "an empty agenda draws the empty node" do

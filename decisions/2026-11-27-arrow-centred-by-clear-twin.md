@@ -27,8 +27,13 @@ they sit in the Column as given, at the panel's leading edge; the doc says to
 give the popover a `width` and size the markup to it to centre it.
 
 ## Consequences
-- Arrowed panels hug their content on Android. On iOS a Column still fills
-  (MOB-564), so they stay cap-wide there until that lands.
+- The arrow wrapper no longer forces a panel to full width. It does NOT make
+  every arrowed panel hug: a part that fills still widens it on Android —
+  MishkaPreviewCard's header, description and footer, and MishkaPopover's
+  `close` footer (`<Row fill_width={true}>` in `footer_row/1`). Measured on
+  Android: such a panel is 362.9 dp of a 411 dp window. Those inner fills are
+  left for a separate change. On iOS a Column still fills (MOB-564), so
+  arrowed panels stay cap-wide there until that lands.
 - Markup arrows are no longer centred automatically (they were, at the cost of
   a screen-wide panel).
 - The same idea fits any "centre X on a content-sized sibling" layout while
