@@ -17,10 +17,12 @@ defmodule MobMishka.Components.MishkaSegmentedControl do
 
   ## Segments are content-sized, and the track hugs them
 
-  Equal-width segments would need `weight`, which Compose implements and Mob's
-  iOS mapping does not, so the strip would look right on Android and collapse on
-  iOS. Segments therefore size to their labels — the same compromise the Tabs
-  port makes, for the same reason.
+  Equal-width segments need `weight`. Compose divides a Row by it; as of mob
+  0.9.32 the iOS renderer honours it only as "fill the rest", splitting weighted
+  siblings evenly and pinning each one's content to the leading edge of its
+  share. That was not available when this port was written, so segments size to
+  their labels by default — the same compromise the Tabs port makes, for the
+  same reason.
 
   That makes `fill_width` load-bearing on both the track and each segment. A Box
   given neither a width nor the prop **fills its parent**, so an unguarded
@@ -124,11 +126,13 @@ defmodule MobMishka.Components.MishkaSegmentedControl do
 
   `segment_weight` puts a `weight` on each segment Box, which is what Compose's
   Row reads to divide its width evenly — and the segments are direct children of
-  that Row, so no wrapper is needed. Mob's iOS mapping implements no layout
-  weight, so the prop is Android-only and the strip stays content-sized there.
-  That asymmetry is exactly why it is opt-in and unset by default: a control that
-  is right on one platform and collapsed on the other should be a decision, not
-  a surprise. Pair it with `fill_width={true}` so the Row has a width to divide.
+  that Row, so no wrapper is needed. As of mob 0.9.32 iOS honours it too, as
+  "fill the rest": the ratio is ignored, but every segment carries the same
+  weight, so the even split is the one asked for. The platforms still differ in
+  one way: iOS's weighted frame aligns its content `.leading`, and a segment's
+  content hugs (`fill_width={false}`), so a label sits at the leading edge of its
+  share there rather than centred. That is why it stays opt-in and unset by
+  default. Pair it with `fill_width={true}` so the Row has a width to divide.
 
   ## Slots
 
@@ -353,7 +357,8 @@ defmodule MobMishka.Components.MishkaSegmentedControl do
     # the screen — present in the tree, correct in every unit test, invisible on
     # the device. It is also what makes the "content-sized" claim above true.
     # `segment_weight` is the deliberate way out of it, and stays off by default
-    # because Mob's iOS mapping has no layout weight to honour.
+    # because iOS (mob 0.9.32) honours weight only as fill-the-rest, with each
+    # segment's content pinned to the leading edge of its share.
     node = ~MOB"""
     <Box
       fill_width={false}

@@ -95,8 +95,8 @@ defmodule MobMishka.Components.MishkaProgress do
   wide the fill is:
 
     * **given a `width`**, the fill is arithmetic — `width * fraction` — and
-      both boxes carry both dimensions, which is the one `Box` shape iOS sizes
-      on both axes (`IOS_TODO.md` item 1). No `weight` is emitted at all;
+      both boxes carry both dimensions, so every renderer sizes them exactly.
+      No `weight` is emitted at all;
     * **without one**, the track fills its parent, whose width is not known
       here, so the fill claims its share with `weight` — `weight: fraction`
       against a remainder `Spacer` of `weight: 1 - fraction`, inside a `Row`
@@ -113,10 +113,10 @@ defmodule MobMishka.Components.MishkaProgress do
 
     * **at 0% the fill node is omitted entirely**, in both shapes. Not for
       tidiness — a zero `weight` throws, and a zero-width `Box` is *worse* than
-      useless on iOS, where `MobBox` sizes on both axes only when
-      `fixedWidth > 0` and otherwise falls through to `.frame(maxWidth:
-      .infinity)`: a 0%-wide fill would paint the bar **full**. An absent node
-      draws nothing on both platforms, which is the one thing 0% means.
+      useless on iOS, where `MobBox` treats a width of `0` as no width and falls
+      through to `.frame(maxWidth: .infinity)`: a 0%-wide fill would paint the
+      bar **full**. An absent node draws nothing on both platforms, which is
+      the one thing 0% means.
       `MobMishka.Components.MishkaSemiCircleProgress` omits its indicator arc at
       a zero sweep for the same class of reason;
     * **at 100% the fill takes the whole track** — `width * 1.0` in the fixed
@@ -141,20 +141,20 @@ defmodule MobMishka.Components.MishkaProgress do
     * a progress node reads neither `width` nor `height` (`MobRootView.swift`'s
       `.progress` case builds its own `ProgressView` and applies only padding
       and tint), so under `render={:progress}` both props are Android-only;
-    * a **fixed-width** drawn bar hits `MobBox`'s `fixedWidth > 0` branch, which
-      is the only one that sizes both axes — track and fill are both correct;
-    * a **fill-width** drawn bar is Android-only: `weight` is read nowhere in
-      the iOS renderer (`IOS_TODO.md` item 13), so the fill has no width of its
-      own and falls through to `.frame(maxWidth: .infinity)` while the remainder
-      is an unsized, flexible `Spacer()` — the two split the track on SwiftUI's
-      terms, identically at every fraction. Give the bar a `width` on iOS until
-      item 13 lands.
+    * a **fixed-width** drawn bar sizes track and fill exactly on both axes;
+    * a **fill-width** drawn bar is Android-only. As of mob 0.9.32 the iOS
+      renderer honours `weight` as "fill the rest of the row" but ignores the
+      ratio (`IOS_TODO.md` item 13), so the fill and the remainder `Spacer` are
+      both just flexible and split the track evenly — the bar reads half full
+      at every fraction between 0% and 100%. Give the bar a `width` on iOS
+      until iOS honours the ratio.
 
-  The `<Spacer size={height} />` inside a fill-width drawn track is the same iOS
-  workaround `mishka_separator` and `mishka_skeleton` carry: `MobBox` drops a
-  Box's `height` unless the Box also has a `width` (item 1), so a childless
-  full-width bar measures 0pt tall and draws nothing. On Android it is an
-  invisible `height`-square child that the background covers.
+  The `<Spacer size={height} />` inside a fill-width drawn track is an iOS
+  workaround that predates mob 0.9.32, the same one `mishka_separator` and
+  `mishka_skeleton` carry: `MobBox` used to drop a Box's `height` unless the Box
+  also had a `width` (`IOS_TODO.md` item 1, fixed in 0.9.32), so a childless
+  full-width bar measured 0pt tall and drew nothing. It is kept; on Android it
+  is an invisible `height`-square child that the background covers.
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/progress
   """
@@ -319,8 +319,8 @@ defmodule MobMishka.Components.MishkaProgress do
     end
   end
 
-  # The portable shape: every box carries both dimensions, so iOS's MobBox takes
-  # the one branch that sizes both (IOS_TODO 1), and no `weight` is emitted.
+  # The portable shape: every box carries both dimensions, so both renderers
+  # size it exactly, and no `weight` is emitted.
   defp fixed_bar(width, fraction, geometry) do
     fill = width * fraction
 
@@ -344,7 +344,8 @@ defmodule MobMishka.Components.MishkaProgress do
   end
 
   # No width to divide here, so the fill claims its share with `weight`. The
-  # Spacer is the iOS height workaround, not a design — see "Platform note".
+  # Spacer is the pre-0.9.32 iOS height workaround, not a design — see
+  # "Platform note".
   defp fluid_bar(fraction, geometry) do
     ~MOB"""
     <Box fill_width={true} height={geometry.height} background={geometry.track}>

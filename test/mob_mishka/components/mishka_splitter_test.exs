@@ -58,6 +58,19 @@ defmodule MobMishka.Components.MishkaSplitterTest do
       assert Enum.all?(pane_boxes(tree), & &1.props.fill_width)
     end
 
+    test "stacked, the grip strip is centred across the divider" do
+      # The overlay canvas is a 48dp strip; a Box's default alignment is
+      # top-start on both platforms, which left the grip pill at the left edge.
+      tree = MishkaSplitter.splitter(%{orientation: :vertical}, panes())
+
+      assert tree.type == :box
+      assert tree.props.align == :top
+    end
+
+    test "side by side keeps the default alignment, where the strip spans the extent" do
+      refute Map.has_key?(MishkaSplitter.splitter(%{}, panes()).props, :align)
+    end
+
     test "accepts the orientation as a string too" do
       atom = MishkaSplitter.splitter(%{orientation: :vertical}, panes())
       string = MishkaSplitter.splitter(%{orientation: "vertical"}, panes())
@@ -228,6 +241,17 @@ defmodule MobMishka.Components.MishkaSplitterTest do
       # tag rather than one of mob's baked-in renderable types.
       assert_renderable(MishkaSplitter.splitter(%{}, []), extra: [:canvas])
       assert_renderable(MishkaSplitter.splitter(%{}, [hd(panes())]), extra: [:canvas])
+    end
+
+    test "a missing pane is an empty box, never a size-0 Spacer" do
+      # A Spacer of size <= 0 is flexible on iOS and mob_new's current Android
+      # bridge, so it was not the "nothing" it was written as.
+      for given <- [[], [hd(panes())]] do
+        tree = MishkaSplitter.splitter(%{}, given)
+
+        assert find_all(tree, :spacer) == []
+        assert Enum.count(pane_boxes(tree), &(&1.children == [])) == 2 - length(given)
+      end
     end
 
     test "extra children past the second are ignored" do

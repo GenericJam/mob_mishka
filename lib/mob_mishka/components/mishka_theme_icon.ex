@@ -104,7 +104,7 @@ defmodule MobMishka.Components.MishkaThemeIcon do
   | `border_width` | number (dp) | `1` | Read only when a border colour is in play. |
   | `shadow` | string | `nil` | Drop shadow on the container. See below. |
   | `on_tap` | event tag | — | `{:tap, tag}`. |
-  | `on_long_press` | event tag | — | `{:tap, {tag, label}}`. |
+  | `on_long_press` | event tag | — | `{:long_press, {tag, label}}`. |
 
   Not ported: `class` (there is no CSS), `rest` (no DOM attributes), and
   `role` / `aria-*` — see the `label` section for what happens to them instead.

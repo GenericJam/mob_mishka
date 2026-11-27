@@ -15,9 +15,11 @@ defmodule MobMishka.Components.MishkaMeter do
   primitive for both components in the same way, and means the same thing here.
 
   Drawing the fill by hand — a `Row` of two weighted boxes — used to be rejected
-  outright here: `weight` is a Compose concept Mob's iOS mapping does not
-  implement, so a hand-drawn gauge was proportional on Android and broken on
-  iOS. That reasoning survives for the **default**, and only for the default.
+  outright here, because the ratio between two weights is Compose's alone: as of
+  mob 0.9.32 the iOS renderer honours `weight` only as "fill the rest of the
+  axis", so two weighted boxes split the track evenly whatever the value, and a
+  hand-drawn gauge is proportional on Android but reads half full on iOS. That
+  reasoning survives for the **default**, and only for the default.
   It missed that a gauge given an explicit `width` needs no `weight` at all —
   its fill is `width * ratio`, plain arithmetic — and that Material's own
   geometry is not always the geometry a design asks for. See "When the native

@@ -34,7 +34,7 @@ defmodule MobMishka.Components.MishkaPill do
   | `padding_top` / `padding_right` / `padding_bottom` / `padding_left` | spacing token / number | unset | One edge, overriding `padding` on that side only. |
   | `width` | number | unset | Exact width. Unset, the pill hugs its label. |
   | `height` | number | unset | Exact height. Unset, the pill hugs its label. |
-  | `weight` | number | unset | Share of a parent `Row`/`Column`, as on any Mob node — two pills at `1.0` and `2.0` split a row one to two. Read by the parent off the root, so it works with `height` and `align` for a button that takes the leftover width. |
+  | `weight` | number | unset | Share of a parent `Row`/`Column`, as on any Mob node — two pills at `1.0` and `2.0` split a row one to two on Android; iOS (mob 0.9.32) fills the rest but splits weighted siblings evenly. Read by the parent off the root, so it works with `height` and `align` for a button that takes the leftover width. |
   | `fill_width` | boolean | `false` | Span the parent instead of hugging. |
   | `align` | `:center`, `:leading`, `:trailing`, … | unset (top-leading) | Where the content sits when `width` / `height` leave it room. |
   | `border_color` | color token / ARGB int | unset | Outline colour. Draws only alongside `border_width`. |
@@ -126,10 +126,9 @@ defmodule MobMishka.Components.MishkaPill do
   Only the label reads it. The ✕ and a string `leading` are lone glyphs, and
   children bring `Text` nodes of their own.
 
-  On iOS the cap is inert whatever it says: `MobRootView` builds its `Text` with
-  no `.lineLimit` (`IOS_TODO.md` item 9), so a label wraps as far as it likes
-  there — which is today's behaviour rather than a regression, and the reason a
-  pill you have only checked on Android may look different on the other side.
+  iOS honours the cap too as of mob 0.9.32. Before that `MobRootView` built its
+  `Text` with no `.lineLimit` (`IOS_TODO.md` item 9, now fixed), so a label
+  wrapped as far as it liked there whatever the cap said.
 
   ## An outline-only pill: `background: :none`
 
@@ -234,10 +233,9 @@ defmodule MobMishka.Components.MishkaPill do
   Two things follow. It only makes sense on a pill that is itself full width: a
   `Row` that fills inside a `Box` that hugs drags the Box's incoming maximum out
   with it, which is the full-width-bar bug `fill_width={false}` exists to
-  prevent — so pass `fill_width={true}` alongside it. And on iOS the `weight`
-  half is inert, because `weight` is read nowhere in the iOS renderer
-  (`IOS_TODO.md` item 13): the wrapper hugs there exactly as it does today, which
-  is the current behaviour rather than a regression.
+  prevent — so pass `fill_width={true}` alongside it. On iOS, as of mob 0.9.32,
+  `weight` is honoured as "fill the rest of the row" but not proportionally; the
+  wrapper is the row's only weighted child, so it takes the leftover there too.
 
   ## The leading slot
 

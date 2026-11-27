@@ -82,6 +82,9 @@ defmodule MobMishka.Components.MishkaCardTest do
       assert body.props.fill_width == true
       assert [title, ^content] = body.children
       assert title.props.text == "Reading list"
+      # A Text with no ink is not theme-aware: iOS drew this title black on the
+      # dark theme's surface.
+      assert title.props.text_color == :on_surface
     end
 
     test "actions draw last" do

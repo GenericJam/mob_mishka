@@ -5,8 +5,10 @@ defmodule MobMishka.Components.MishkaSplitter do
 
   ## Panes are sized, not weighted
 
-  Compose has `weight` and SwiftUI does not, so a proportional split built from
-  weighted boxes would work on Android and collapse on iOS. Instead the splitter
+  Compose reads `weight` as a ratio; the iOS renderer reads it only as "fill
+  the rest", so two weighted siblings split evenly whatever their weights, and
+  a proportional split built from weighted boxes would always land at 50/50 on
+  iOS. Instead the splitter
   takes an explicit `extent` — the total width (or height) it has to divide —
   and computes each pane in dp from the percentage. `sizes/1` does that
   arithmetic and is public, so a screen that knows its own dimensions can ask
@@ -109,13 +111,22 @@ defmodule MobMishka.Components.MishkaSplitter do
 
     # A Box is a z-stack on both platforms, so the drag surface lies OVER the
     # panes rather than beside them. It has to: see `overlay/2`.
+    #
+    # Stacked, the overlay is a `@reach`-wide strip, and a Box's default
+    # alignment is top-START on both platforms — which put the grip pill at the
+    # left edge instead of across the middle of the divider. `:top` is
+    # top-CENTRE on both. Side by side the strip spans the full extent, so the
+    # default is right there.
     %{
       type: :box,
-      props: %{fill_width: true},
+      props: box_props(axis),
       children: [panes, overlay(props, axis)]
     }
     |> tag(Map.get(props, :id))
   end
+
+  defp box_props(:vertical), do: %{fill_width: true, align: :top}
+  defp box_props(:horizontal), do: %{fill_width: true}
 
   @doc """
   Fold a drag payload into a new split percentage.
@@ -253,10 +264,11 @@ defmodule MobMishka.Components.MishkaSplitter do
     """
   end
 
+  # `List.wrap/1` because a missing pane is `[]` — no node at all.
   defp pane(content, size) do
     props = Map.merge(%{background: :surface, corner_radius: :radius_sm}, size)
 
-    %{type: :box, props: props, children: [content]}
+    %{type: :box, props: props, children: List.wrap(content)}
   end
 
   @doc """
@@ -365,15 +377,15 @@ defmodule MobMishka.Components.MishkaSplitter do
   end
 
   # Missing panes render as empty boxes rather than crashing a screen mid-edit.
+  # The box is empty, with no `size: 0` Spacer inside: iOS and the Android
+  # bridge mob_new generates today read a Spacer of size <= 0 as a flexible gap.
   defp two(panes) do
     case List.wrap(panes) do
       [first, second | _] -> [first, second]
-      [first] -> [first, blank()]
-      [] -> [blank(), blank()]
+      [first] -> [first, []]
+      [] -> [[], []]
     end
   end
-
-  defp blank, do: ~MOB(<Spacer size={0} />)
 
   defp disabled?(props), do: truthy?(Map.get(props, :disabled, false))
 

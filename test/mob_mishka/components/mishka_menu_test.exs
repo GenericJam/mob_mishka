@@ -45,11 +45,31 @@ defmodule MobMishka.Components.MishkaMenuTest do
       for label <- ["MANAGE", "Edit", "Archive", "Delete"], do: assert(text(tree) =~ label)
     end
 
-    test "an icon renders before its label" do
+    test "an icon renders before its label, centred in a fixed-width slot" do
+      # A bare glyph Text is as wide as its glyph, so "✎" and "🗑" started their
+      # labels at different x. The slot lines them up.
       tree = build()
       row = rows(tree) |> Enum.find(&(text(&1) =~ "Edit"))
 
-      assert [%{props: %{text: "✎"}}, %{type: :spacer}, %{props: %{text: "Edit"}}] = row.children
+      assert [slot, %{type: :spacer}, %{props: %{text: "Edit"}}] = row.children
+      assert %{type: :box, props: %{width: 24, align: :center}} = slot
+      assert [%{props: %{text: "✎"}}] = slot.children
+    end
+
+    test "item_icon_width sizes the slot, and a checkbox's blank shares it" do
+      tree =
+        MishkaMenu.menu(%{open: true, item_icon_width: 30}, [
+          MishkaMenu.checkbox(:a, "A", checked: true),
+          MishkaMenu.checkbox(:b, "B", checked: false)
+        ])
+
+      widths =
+        tree
+        |> find_all(:box)
+        |> Enum.filter(&match?([%{type: :text}], &1.children))
+        |> Enum.map(& &1.props[:width])
+
+      assert widths == [30, 30]
     end
 
     test "rows are tappable boxes, never Buttons (a Button centres its label)" do

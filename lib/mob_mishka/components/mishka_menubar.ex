@@ -18,9 +18,9 @@ defmodule MobMishka.Components.MishkaMenubar do
   no anchored overlay at all; it has one now — the `:anchored` node
   (`MobMishka.Components.Anchored`), which `MobMishka.Components.MishkaPopover`
   is built on — and the menubar has simply not been moved onto it. It draws
-  through `MobMishka.Components.MishkaMenu`, which is unchanged. `:anchored` is
-  Android-only so far; on iOS the node falls through to a column, which is the
-  stacked shape the bar already has.
+  through `MobMishka.Components.MishkaMenu`, which is unchanged. Both platforms
+  have had the node since mob 0.8.3 (MOB-190), so the move is not blocked on
+  iOS.
 
   ## Menus
 

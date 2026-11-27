@@ -126,12 +126,17 @@ defmodule MobMishka.Components.MishkaColorPicker do
   end
 
   # Transparent at the top down to black at the bottom — value across y.
+  #
+  # Each band is exactly `@val_band` tall, with no +1 overlap. The overlap is
+  # right for the opaque saturation bands above (it closes a hairline and the
+  # later band simply covers it), but these are translucent: the shared pixel
+  # row is painted twice, and every band edge showed as a darker seam.
   defp value_bands(width, height) do
     0
     |> Stream.iterate(&(&1 + @val_band))
     |> Stream.take_while(&(&1 < height))
     |> Enum.map(fn y ->
-      Mob.Canvas.rect(0, y, width, @val_band + 1,
+      Mob.Canvas.rect(0, y, width, @val_band,
         color: 0xFF_00_00_00,
         fill: true,
         opacity: fraction(y, height, @val_band)

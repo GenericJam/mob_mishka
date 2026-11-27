@@ -207,18 +207,43 @@ defmodule MobMishka.Components.MishkaTreeTest do
       assert {self(), {:close, "lib"}} in taps.(open)
     end
 
-    test "indentation grows with depth" do
-      tree = MishkaTree.tree(nodes: @nodes, expanded: ["lib", "lib/inner"], level_offset: 20)
+    test "indentation grows with depth, and a root row carries no indent spacer" do
+      # level_offset 30 keeps an indent apart from the 20dp a leaf reserves for
+      # the arrow. The leading spacers of each row, in order: the indent (none
+      # at depth 0), then the leaf's arrow reserve.
+      tree = MishkaTree.tree(nodes: @nodes, expanded: ["lib", "lib/inner"], level_offset: 30)
 
-      offsets =
+      leading =
         tree
-        |> find_all(:row)
+        |> find_all(:row, fill_width: true)
         |> Enum.map(fn row ->
-          row.children |> List.first() |> Map.get(:props) |> Map.get(:size)
+          row.children
+          |> Enum.take_while(&(&1.type == :spacer))
+          |> Enum.map(& &1.props.size)
         end)
-        |> Enum.reject(&is_nil/1)
 
-      assert offsets == [0, 20, 40, 20, 0]
+      # lib (branch, depth 0), inner (branch, 1), deep.ex (leaf, 2),
+      # top.ex (leaf, 1), mix.exs (leaf, 0).
+      assert leading == [[], [30], [60, 20], [30, 20], [20]]
+    end
+
+    test "never emits a Spacer of size 0, which both renderers draw as flexible" do
+      # iOS and mob_new's current Android bridge read size <= 0 as "fill the
+      # rest". At depth 0 that spacer split the row with the weighted label and
+      # pushed root labels to mid-row, inverting the indentation.
+      variants = [
+        [nodes: @nodes, expanded: ["lib", "lib/inner"]],
+        [nodes: @nodes, expanded: ["lib"], with_expand_icon: false],
+        [nodes: @nodes, expanded: ["lib", "lib/inner"], with_lines: true, level_offset: 1],
+        [nodes: [%{label: "a", value: "a", icon: "📄"}, %{label: "b", value: "b"}]]
+      ]
+
+      for props <- variants do
+        sizes = props |> MishkaTree.tree() |> find_all(:spacer) |> Enum.map(& &1.props[:size])
+
+        refute Enum.any?(sizes, &(is_number(&1) and &1 <= 0)),
+               "zero-size spacer for #{inspect(props)}: #{inspect(sizes)}"
+      end
     end
 
     test "a leaf reserves the arrow's width so labels line up" do
@@ -762,13 +787,16 @@ defmodule MobMishka.Components.MishkaTreeTest do
     test "level_offset scales the indent" do
       wide = MishkaTree.tree(nodes: @nodes, expanded: ["lib"], level_offset: 40)
 
-      offsets =
+      # The leading spacers of each row: the indent (none at depth 0), then a
+      # leaf's 20dp arrow reserve. lib, inner, top.ex, mix.exs.
+      leading =
         wide
-        |> find_all(:row)
-        |> Enum.map(&(&1.children |> List.first() |> Map.get(:props) |> Map.get(:size)))
-        |> Enum.reject(&is_nil/1)
+        |> find_all(:row, fill_width: true)
+        |> Enum.map(fn row ->
+          row.children |> Enum.take_while(&(&1.type == :spacer)) |> Enum.map(& &1.props.size)
+        end)
 
-      assert offsets == [0, 40, 40, 0]
+      assert leading == [[], [40], [40, 20], [20]]
     end
   end
 

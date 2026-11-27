@@ -88,12 +88,10 @@ defmodule MobMishka.Components.MishkaPreviewCard do
 
   ## iOS
 
-  iOS has no anchored primitive, and `deps/mob/ios` is a checksum-locked hex
-  dependency this repo cannot edit. An unknown node type there falls through to
-  `MobNodeTypeColumn`, so an anchored card degrades to the old stacked accordion
-  rather than erroring or blanking — but it stacks in child order, which puts the
-  card after the trigger whatever `side` says. Android-only for now, and
-  `IOS_TODO.md` §17 records it.
+  iOS has had the anchored primitive too since mob 0.8.3 (MOB-190,
+  `MobAnchored.swift`), so the card floats over the page there as well rather
+  than stacking after the trigger. Where iOS places the card against the
+  trigger is still being fixed in mob.
 
   ## Everything carries a testTag
 
@@ -108,8 +106,8 @@ defmodule MobMishka.Components.MishkaPreviewCard do
   | `<id>-arrow-<align>` | the arrow, and where along the edge it sits |
   | `<id>-title` `<id>-subtitle` `<id>-description` `<id>-avatar` `<id>-footer` | the parts, addressable without a page-wide text query |
 
-  `id` is also the value `on_hold` and `on_tap` report, so one screen clause
-  serves a whole list of triggers.
+  `id` is also the value `on_hold` and `on_tap` report, so one screen clause per
+  event serves a whole list of triggers.
 
   ## Props
 
@@ -118,7 +116,7 @@ defmodule MobMishka.Components.MishkaPreviewCard do
   | `id` | string | `nil` | testTag root, and the value the trigger events carry. |
   | `open` | boolean | `false` | Whether the card is shown. |
   | `trigger` | node / [node] | `nil` | What you hold, as data. `<MishkaPreviewCardTrigger>` is the same thing as markup. Renders in both states. |
-  | `on_hold` | event tag | `nil` | Long press on the trigger — `{:tap, {tag, id}}`. |
+  | `on_hold` | event tag | `nil` | Long press on the trigger — `{:long_press, {tag, id}}`. |
   | `on_tap` | event tag | `nil` | Plain tap on the trigger — `{:tap, {tag, id}}`. |
   | `on_dismiss` | event tag | `nil` | A tap OUTSIDE the open card — `{:tap, tag}`. Without it the card can only be closed from its trigger. |
   | `side` | `:bottom` `:top` `:left` `:right` | `:bottom` | Which side of the trigger the card takes. Flips to the opposite side when that one has no room. |
@@ -196,6 +194,9 @@ defmodule MobMishka.Components.MishkaPreviewCard do
   # side the card took: a card below the trigger points up at it.
   @glyphs %{bottom: "▲", top: "▼", left: "▶", right: "◀"}
 
+  # The arrow's invisible twin: same glyph, same size, no ink.
+  @clear 0x00_00_00_00
+
   @doc """
   Composite expander (`<MishkaPreviewCard>`).
 
@@ -235,9 +236,10 @@ defmodule MobMishka.Components.MishkaPreviewCard do
 
       trigger("elixir", [link_text()], on_hold: :preview, test_id: "elixir-trigger")
 
-  `on_hold` is the long press, the touch equivalent of the web's hover; `on_tap`
-  is whatever the trigger already did. Both report `{:tap, {tag, id}}`, so one
-  screen clause serves a list of them.
+  `on_hold` is the long press, the touch equivalent of the web's hover, and
+  reports `{:long_press, {tag, id}}`; `on_tap` is whatever the trigger already
+  did, and reports `{:tap, {tag, id}}`. Both carry the `id`, so one screen clause
+  per event serves a list of them.
 
   Called directly it still fills its parent, since a trigger placed by hand is
   usually a row of its own. The card builds its own with `fill_width: false`,
@@ -335,17 +337,62 @@ defmodule MobMishka.Components.MishkaPreviewCard do
   defp card(props, footer, id, side, align) do
     popup = popup(props, footer, id, side)
 
-    case arrow(props, id, side, align) do
-      [] ->
+    cond do
+      not truthy?(Map.get(props, :arrow, false)) ->
         popup
 
-      arrow ->
-        parts = if side in [:bottom, :right], do: arrow ++ [popup], else: [popup] ++ arrow
-        axis = if side in [:left, :right], do: :row, else: :column
+      side in [:left, :right] ->
+        arrow = glyph(props, id, side, align, :offset_y)
+        parts = if side == :right, do: [arrow, popup], else: [popup, arrow]
+        %{type: :row, props: %{}, children: parts}
 
-        %{type: axis, props: %{}, children: parts}
+      true ->
+        above_or_below(popup, props, id, side, align)
     end
   end
+
+  # Above or below the card, the arrow is placed along the card's edge by a
+  # hugging Box — a z-stack sized by its widest child, the card — holding the
+  # card in a Column with a clear twin of the glyph where the arrow goes, and
+  # the arrow aligned to that edge (inset 14dp at :start / :end).
+  #
+  # It used to be a `fill_width` Row of flexible spacers. A filling child makes
+  # a wrapping Column as wide as its widest constraint — in the popup window,
+  # the window cap — so every card with an arrow was screen-wide, on Android as
+  # well as iOS.
+  defp above_or_below(popup, props, id, side, align) do
+    arrow = glyph(props, id, side, align, :offset_x)
+
+    twin = %{
+      arrow
+      | props: arrow.props |> Map.drop([:id, :offset_x]) |> Map.put(:text_color, @clear)
+    }
+
+    column = if side == :bottom, do: [twin, popup], else: [popup, twin]
+
+    %{
+      type: :box,
+      props: Map.merge(%{fill_width: false}, edge_align(side, align)),
+      children: [%{type: :column, props: %{}, children: column}, inset(arrow, align)]
+    }
+  end
+
+  # `side` is where the CARD is, so :bottom puts the arrow on the card's top
+  # edge. Top-leading is a Box's default on both platforms and has no key.
+  defp edge_align(:bottom, :start), do: %{}
+  defp edge_align(:bottom, :end), do: %{align: :top_trailing}
+  defp edge_align(:bottom, _center), do: %{align: :top_center}
+  defp edge_align(:top, :start), do: %{align: :bottom_leading}
+  defp edge_align(:top, :end), do: %{align: :bottom_trailing}
+  defp edge_align(:top, _center), do: %{align: :bottom_center}
+
+  defp inset(arrow, :start),
+    do: %{type: :box, props: %{fill_width: false, padding_left: 14}, children: [arrow]}
+
+  defp inset(arrow, :end),
+    do: %{type: :box, props: %{fill_width: false, padding_right: 14}, children: [arrow]}
+
+  defp inset(arrow, _center), do: arrow
 
   defp trigger_part(props, side) do
     case List.wrap(Map.get(props, :trigger)) do
@@ -382,27 +429,6 @@ defmodule MobMishka.Components.MishkaPreviewCard do
     |> MishkaPopover.panel([header(props, id), body(props, id), footer_part(footer, id)])
     |> put(:id, tag(id, "-popup-#{side}"))
   end
-
-  defp arrow(props, id, side, align) do
-    if truthy?(Map.get(props, :arrow, false)), do: [arrow_node(props, id, side, align)], else: []
-  end
-
-  defp arrow_node(props, id, side, align) when side in [:top, :bottom] do
-    glyph = glyph(props, id, side, align, :offset_x)
-    edge = %{type: :spacer, props: %{size: 14}, children: []}
-    flex = %{type: :spacer, props: %{weight: 1}, children: []}
-
-    children =
-      case align do
-        :start -> [edge, glyph, flex]
-        :end -> [flex, glyph, edge]
-        _center -> [flex, glyph, flex]
-      end
-
-    %{type: :row, props: %{fill_width: true}, children: children}
-  end
-
-  defp arrow_node(props, id, side, align), do: glyph(props, id, side, align, :offset_y)
 
   defp glyph(props, id, side, align, offset_key) do
     %{

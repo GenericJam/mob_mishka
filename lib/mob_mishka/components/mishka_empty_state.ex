@@ -331,12 +331,13 @@ defmodule MobMishka.Components.MishkaEmptyState do
   # stayed in the node tree with a working handler, so every unit test passed and
   # the test harness would happily "click" it — only a finger could tell.
   #
-  # `fill_width: false` is the fix rather than a weight. Both place the buttons,
-  # but weight is `Modifier.weight`, which SwiftUI has no equivalent for and Mob's
-  # iOS renderer does not implement — the row would divide evenly on Android and
-  # not on iOS. Hugging is honoured on both, and it is also what an HStack does
-  # natively, so the two platforms agree. `put_new` leaves a caller free to say
-  # otherwise.
+  # `fill_width: false` is the fix rather than a weight. A weight was ruled out
+  # when Mob's iOS renderer did not implement it, so the row would have divided
+  # evenly on Android and not on iOS. As of mob 0.9.32 iOS honours weight as
+  # fill-the-rest (equal weights split evenly), but weighted actions would still
+  # make the row fill, which the centred layout below cannot have. Hugging is
+  # honoured on both, and it is also what an HStack does natively, so the two
+  # platforms agree. `put_new` leaves a caller free to say otherwise.
   #
   # Nothing here fills: the centred layout centres by having this Row hug inside
   # an aligned Box, and a Column cannot align its own children (Mob maps it to a

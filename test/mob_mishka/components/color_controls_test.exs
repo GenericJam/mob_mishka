@@ -140,6 +140,19 @@ defmodule MobMishka.Components.ColorControlsTest do
       assert_draws(tree)
     end
 
+    test "translucent bands abut without overlapping, so no seam is painted twice" do
+      # The +1 overlap the hue slider uses is harmless on opaque bands; on these
+      # the shared column is drawn twice and showed as a dark seam.
+      tree = MishkaAlphaSlider.alpha_slider(color: "#ff0000", width: 64, height: 16)
+      fades = ops(tree) |> Enum.filter(&Map.has_key?(&1, :opacity))
+
+      assert Enum.all?(fades, &(&1.w == 4))
+
+      for [a, b] <- Enum.chunk_every(fades, 2, 1, :discard) do
+        assert a.x + a.w == b.x
+      end
+    end
+
     test "the track itself is the control — no separate slider under it" do
       tree = MishkaAlphaSlider.alpha_slider(value: 60, on_change: :a)
 
@@ -263,6 +276,19 @@ defmodule MobMishka.Components.ColorControlsTest do
       # Clear at the top, black at the bottom.
       assert List.first(val_bands).opacity == 0.0
       assert Enum.all?(val_bands, &(&1.color == Color.argb({0, 0, 0})))
+    end
+
+    test "the translucent value bands abut without overlapping" do
+      # Each black band is translucent; a +1 overlap paints the shared row twice
+      # and every band edge showed as a darker seam.
+      tree = MishkaColorPicker.color_picker(hue: 0, saturation: 50, value: 50)
+      val_bands = tree |> ops_of(:rect) |> Enum.filter(&Map.has_key?(&1, :opacity))
+
+      assert Enum.all?(val_bands, &(&1.h == 4))
+
+      for [a, b] <- Enum.chunk_every(val_bands, 2, 1, :discard) do
+        assert a.y + a.h == b.y
+      end
     end
 
     test "the crosshair follows saturation and brightness" do

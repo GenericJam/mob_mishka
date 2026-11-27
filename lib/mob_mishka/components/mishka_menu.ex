@@ -56,6 +56,9 @@ defmodule MobMishka.Components.MishkaMenu do
   # How far a submenu's rows sit in from their trigger.
   @indent 16
 
+  # The width of the slot a glyph icon sits in, so labels line up.
+  @icon_width 24
+
   @doc "Composite expander (`<MishkaMenu>`). Children are items."
   @spec expand(map(), [map()], map()) :: map()
   def expand(props, children, _ctx), do: menu(props, children)
@@ -66,6 +69,11 @@ defmodule MobMishka.Components.MishkaMenu do
   `:id` is the EVENT tag — what `on_select` reports. `:test_id` is separate and
   becomes the row's native testTag, because a device test otherwise has nothing
   to address a row by but its label, and labels repeat across a page.
+
+  A string `:icon` sits centred in a fixed-width slot (24 by default; the
+  menu's `:item_icon_width` option changes it), so labels line up whatever the
+  glyph's own width. The row's ink tints a symbol such as "✎" but not an emoji:
+  an emoji is a colour glyph on both platforms and keeps its own colours.
   """
   @spec item(term(), String.t(), keyword()) :: map()
   def item(id, label, opts \\ []) do
@@ -210,9 +218,8 @@ defmodule MobMishka.Components.MishkaMenu do
   border, 6pt above and below the rows. `shadow` is the one panel prop a menu
   usually needs and `MishkaPopover.panel/2` did not carry before this.
 
-  On iOS the anchored primitive is not implemented; this degrades to the
-  stacked arrangement Mob gives an unknown node type. That is the same platform
-  limit the other anchored components have.
+  The panel is drawn by the `:anchored` node on both platforms; the iOS
+  renderer has had it since mob 0.8.3 (MOB-190).
 
   ## Options
 
@@ -221,9 +228,9 @@ defmodule MobMishka.Components.MishkaMenu do
   * `:side`, `:align`, `:side_offset`, `:on_dismiss`
   * `:danger_color`
   * item geometry: `:item_height`, `:item_padding_x`, `:item_padding_y`,
-    `:item_icon_gap`, `:item_text_size`, `:item_font_weight`,
-    `:item_label_weight`, `:item_corner_radius`, `:item_text_color`,
-    `:item_max_lines`
+    `:item_icon_width`, `:item_icon_gap`, `:item_text_size`,
+    `:item_font_weight`, `:item_label_weight`, `:item_corner_radius`,
+    `:item_text_color`, `:item_max_lines`
   * separator: `:separator_color`, `:separator_thickness`,
     `:separator_padding_y`, `:separator_padding_x`
   """
@@ -396,18 +403,36 @@ defmodule MobMishka.Components.MishkaMenu do
 
   defp icon_nodes(nil, _color, _props), do: []
 
+  # A glyph sits in a slot of fixed width (`:item_icon_width`, default 24),
+  # centred. A bare Text is as wide as its glyph, and "✎", "🗑" and "✓" are not
+  # the same width, so every label started at a different x. The slot also
+  # lines a checkbox row's blank " " up with its "✓".
+  #
+  # `text_color` tints a symbol glyph, never an emoji: an emoji is a colour
+  # bitmap on both platforms and draws in its own colours whatever the ink.
   defp icon_nodes(icon, color, props) when is_binary(icon) do
     text = %{
       type: :text,
       props: %{
         text: icon,
         text_size: Map.get(props, :item_text_size) || :base,
-        text_color: color
+        text_color: color,
+        max_lines: 1
       },
       children: []
     }
 
-    [text, spacer(Map.get(props, :item_icon_gap) || 10)]
+    slot = %{
+      type: :box,
+      props: %{
+        width: Map.get(props, :item_icon_width) || @icon_width,
+        align: :center,
+        fill_width: false
+      },
+      children: [text]
+    }
+
+    [slot, spacer(Map.get(props, :item_icon_gap) || 10)]
   end
 
   defp icon_nodes(icon, _color, props) when is_map(icon) or is_list(icon) do

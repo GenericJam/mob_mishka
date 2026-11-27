@@ -37,23 +37,26 @@ defmodule MobMishka.Components.MishkaVisuallyHidden do
   **Documentation:** https://mishka.tools/chelekom/docs/mob/visually-hidden
   """
 
-  import Mob.Sigil
-
   @doc "Composite expander (`<MishkaVisuallyHidden>`). Delegates to `visually_hidden/2`."
-  @spec expand(map(), [map()], map()) :: map()
+  @spec expand(map(), [map()], map()) :: []
   def expand(props, children, _ctx), do: visually_hidden(props, children)
 
   @doc """
-  An empty node.
+  No node at all: an empty list, which the parent's children flatten away.
 
   The children are accepted and dropped deliberately: the call site stays
   truthful about intent, and becomes correct for free if Mob ever grows an
   accessibility-label prop.
+
+  This used to return a `size: 0` Spacer. iOS and the Android bridge `mob_new`
+  generates today both read a Spacer of size 0 or less as a FLEXIBLE gap, so
+  the "nothing" took a share of whatever Row or Column it sat in.
+
+      iex> MobMishka.Components.MishkaVisuallyHidden.visually_hidden(%{}, [%{type: :text}])
+      []
   """
-  @spec visually_hidden(map() | keyword(), [map()]) :: map()
-  def visually_hidden(_props \\ %{}, _children \\ []) do
-    ~MOB(<Spacer size={0} />)
-  end
+  @spec visually_hidden(map() | keyword(), [map()]) :: []
+  def visually_hidden(_props \\ %{}, _children \\ []), do: []
 
   @doc """
   Whether hidden content can actually reach a screen reader on this platform.

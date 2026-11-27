@@ -256,8 +256,9 @@ defmodule MobMishka.Components.MishkaOtpField do
       active? and not filled? and not disabled? and
         truthy?(Map.get(props, :focused, false))
 
-    # A fixed width, not `weight: 1`: weight is Compose-only and iOS ignores it,
-    # which would leave the slots sized to their content there.
+    # A fixed width, not `weight: 1`. This was chosen when iOS ignored weight and
+    # left the slots sized to their content; mob 0.9.32 honours weight on iOS as
+    # fill-the-rest (equal weights split evenly), but the fixed width stays.
     width = Map.get(props, :slot_width) || 44
 
     border = slot_border(accent, filled? or active?, disabled?)

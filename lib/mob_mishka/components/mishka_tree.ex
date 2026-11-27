@@ -673,12 +673,18 @@ defmodule MobMishka.Components.MishkaTree do
 
     parts =
       guides(depth, props) ++
-        [disclosure(node, expandable?, expanded?, props, off?)] ++
+        disclosure(node, expandable?, expanded?, props, off?) ++
         checkbox(node, props, off?) ++
-        [icon(node), label(node, id, selected?, off?)] ++
+        icon(node) ++
+        [label(node, id, selected?, off?)] ++
         loader(props, id, value, loading?) ++
         meta(node)
 
+    # No Spacer at all for a zero indent (depth 0). A `size: 0` Spacer is not a
+    # zero-width gap: iOS and the Android bridge mob_new generates today both
+    # read size <= 0 as FLEXIBLE, so a root row's spacer split the row with the
+    # weighted label and pushed every depth-0 label to mid-row, while children,
+    # with a fixed 18dp spacer, sat at the left edge — the indent inside out.
     ~MOB"""
     <Box
       fill_width={true}
@@ -687,7 +693,7 @@ defmodule MobMishka.Components.MishkaTree do
       padding={6}
     >
       <Row fill_width={true} align={:center}>
-        <Spacer size={offset} />
+        <Spacer :if={offset > 0} size={offset} />
         {parts}
       </Row>
     </Box>
@@ -770,7 +776,7 @@ defmodule MobMishka.Components.MishkaTree do
         ~MOB"""
         <Row>
           <Box width={1} height={20} background={:border} />
-          <Spacer size={step - 1} />
+          <Spacer :if={step > 1} size={step - 1} />
         </Row>
         """
       end)
@@ -779,14 +785,16 @@ defmodule MobMishka.Components.MishkaTree do
     end
   end
 
+  # Every branch returns a list, so "nothing" is `[]` rather than a `size: 0`
+  # Spacer — which both renderers now draw as a flexible gap, not an empty one.
   defp disclosure(node, expandable?, expanded?, props, off?) do
     cond do
       not flag?(props, :with_expand_icon, true) ->
-        ~MOB(<Spacer size={0} />)
+        []
 
       not expandable? ->
         # A leaf still reserves the arrow's width, so labels line up.
-        ~MOB(<Spacer size={20} />)
+        [~MOB(<Spacer size={20} />)]
 
       true ->
         id = tree_id(props)
@@ -807,15 +815,18 @@ defmodule MobMishka.Components.MishkaTree do
         # shoved the icon and label off the end — which is why every branch
         # rendered as an empty band and only leaves, which have no arrow, looked
         # right.
-        ~MOB"""
-        <Box padding={2} fill_width={false}>
-          {arrow}
-        </Box>
-        """
-        |> put(:on_tap, if(off?, do: nil, else: branch(node, expanded?, props)))
-        # Mob turns :id into a native testTag. Every arrow reads "▾" or "▸", so
-        # this is what tells one branch's control from another's.
-        |> put(:id, toggle_tag(id, node.value))
+        box =
+          ~MOB"""
+          <Box padding={2} fill_width={false}>
+            {arrow}
+          </Box>
+          """
+          |> put(:on_tap, if(off?, do: nil, else: branch(node, expanded?, props)))
+          # Mob turns :id into a native testTag. Every arrow reads "▾" or "▸", so
+          # this is what tells one branch's control from another's.
+          |> put(:id, toggle_tag(id, node.value))
+
+        [box]
     end
   end
 
@@ -882,15 +893,17 @@ defmodule MobMishka.Components.MishkaTree do
   defp icon(node) do
     case Map.get(node, :icon) do
       nil ->
-        ~MOB(<Spacer size={0} />)
+        []
 
       glyph ->
-        ~MOB"""
-        <Row>
-          <Text text={glyph} text_size={:sm} text_color={:muted} />
-          <Spacer size={6} />
-        </Row>
-        """
+        [
+          ~MOB"""
+          <Row>
+            <Text text={glyph} text_size={:sm} text_color={:muted} />
+            <Spacer size={6} />
+          </Row>
+          """
+        ]
     end
   end
 

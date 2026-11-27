@@ -24,7 +24,7 @@ defmodule MobMishka.Components.MishkaListItem do
   | `trailing_gap` | number | `12` | Space between the body and the trailing slot. |
   | `padding` | spacing token / number | unset | All four sides. |
   | `padding_top` / `padding_right` / `padding_bottom` / `padding_left` | spacing token / number | unset | One edge, overriding `padding`. |
-  | `align` | `:center`, `:leading`, … | `:center` | Cross-axis alignment of the row. |
+  | `align` | `:center`, `:top` (or `:leading`), `:bottom` (or `:trailing`) | `:center` | Vertical alignment of the slots against the body. `:top` keeps a leading dot on the body's first line. |
   | `fill_width` | boolean | `true` | Span the parent. |
   | `on_tap` | event tag | unset | Makes the whole row one target. |
   | `on_long_press` | event tag | unset | Long-press handler, where the platform has one. |
@@ -85,7 +85,7 @@ defmodule MobMishka.Components.MishkaListItem do
   defp row_props(props) do
     %{}
     |> put_some(:fill_width, Map.get(props, :fill_width, true))
-    |> put_some(:align, Map.get(props, :align) || :center)
+    |> put_some(:align, row_align(Map.get(props, :align)))
     |> put_some(:padding, Map.get(props, :padding))
     |> put_some(:padding_top, Map.get(props, :padding_top))
     |> put_some(:padding_right, Map.get(props, :padding_right))
@@ -95,6 +95,15 @@ defmodule MobMishka.Components.MishkaListItem do
     |> put_some(:on_long_press, Event.handler(Map.get(props, :on_long_press)))
     |> put_some(:id, Map.get(props, :id))
   end
+
+  # A Row's cross axis is vertical, and the renderers know `top` and `bottom`
+  # (iOS also `baseline`), not `leading` or `trailing`. The doc advertised
+  # `:leading`, both platforms fell back to centre for it, and a leading dot on
+  # a two-line body sat between the lines instead of on the first one.
+  defp row_align(align) when align in [:leading, :top, "leading", "top"], do: :top
+  defp row_align(align) when align in [:trailing, :bottom, "trailing", "bottom"], do: :bottom
+  defp row_align(nil), do: :center
+  defp row_align(align), do: align
 
   defp put_some(map, _key, nil), do: map
   defp put_some(map, key, value), do: Map.put(map, key, value)

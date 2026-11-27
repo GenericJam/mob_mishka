@@ -66,7 +66,7 @@ defmodule MobMishka.Components.MishkaCard do
   | Prop | Values | Default | Meaning |
   |------|--------|---------|---------|
   | `direction` | `:column` `:row` | `:column` | How the root lays out. |
-  | `title` | string, node, or list of nodes | unset | Drawn first in the body. A string becomes a bare `Text` with no styling. |
+  | `title` | string, node, or list of nodes | unset | Drawn first in the body. A string becomes a plain `Text` in `:on_surface`, the card's ink; pass a node for any other styling. |
   | `figure` | node or list of nodes | unset | Drawn inside the root, before or after the body. |
   | `figure_position` | `:start` `:end` | `:start` | Whether the figure comes before or after the body. |
   | `actions` | node or list of nodes | unset | Drawn last in the body. |
@@ -197,12 +197,16 @@ defmodule MobMishka.Components.MishkaCard do
     %{type: :column, props: %{fill_width: true}, children: title ++ content ++ actions}
   end
 
-  # A string title is a bare `Text`; a node or a list is used as given, so a
+  # A string title is a plain `Text`; a node or a list is used as given, so a
   # caller that wants its own type passes a styled node.
+  #
+  # The one style a string gets is the ink. A Text with no `text_color` is not
+  # theme-aware: iOS draws it in the system label colour, which is black on the
+  # dark theme's surface, so the title was invisible there.
   defp title_nodes(nil), do: []
 
   defp title_nodes(title) when is_binary(title) do
-    [%{type: :text, props: %{text: title}, children: []}]
+    [%{type: :text, props: %{text: title, text_color: :on_surface}, children: []}]
   end
 
   defp title_nodes(title) when is_map(title), do: [title]

@@ -486,10 +486,43 @@ defmodule MobMishka.Components.MishkaCalendarViewsTest do
       assert text(node) =~ "Row"
     end
 
+    test "every time cell has the same fixed width, so rails and titles line up" do
+      # It was `min_width`, which no renderer reads: each cell took its own
+      # text's width and consecutive rows did not align.
+      sections = [
+        %{label: "TODAY", items: [%{time: "9:00", title: "a"}, %{time: "11:30 PM", title: "b"}]}
+      ]
+
+      node = MishkaCalendar.calendar(%{view: :agenda, sections: sections, time_width: 60})
+      default = MishkaCalendar.calendar(%{view: :agenda, sections: sections})
+
+      widths = fn tree ->
+        tree
+        |> find_all(:column)
+        |> Enum.filter(&match?([%{type: :text, props: %{text_size: 11}}], &1.children))
+        |> Enum.map(&{&1.props[:width], Map.has_key?(&1.props, :min_width)})
+      end
+
+      assert widths.(node) == [{60, false}, {60, false}]
+
+      # The default fits a 12-hour time at 11sp (46–48dp in Roboto, ≈45pt in SF
+      # Pro); upstream's 44 cut "11:30 PM" to "11:30 P…" once it was a real width.
+      assert widths.(default) == [{52, false}, {52, false}]
+    end
+
     test "an empty agenda draws the empty node" do
       empty = %{type: :text, props: %{text: "Nothing"}, children: []}
 
       assert MishkaCalendar.calendar(%{view: :agenda, sections: [], empty: empty}) == empty
+    end
+
+    test "nothing to draw is an empty Column, never a size-0 Spacer (flexible on both)" do
+      assert MishkaCalendar.calendar(%{view: :agenda, sections: []}).type == :column
+      assert MishkaCalendar.calendar(%{view: :day, rows: []}).type == :column
+
+      rows = [%{time: "09:00", title: "a"}, %{time: "10:00", title: "b"}]
+      sizes = %{view: :day, rows: rows} |> MishkaCalendar.calendar() |> find_all(:spacer)
+      refute Enum.any?(sizes, &(&1.props[:size] == 0))
     end
   end
 end
