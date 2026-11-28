@@ -7,7 +7,7 @@ defmodule MobMishka do
   to your `mix.exs`:
 
       {:mob,         "~> 0.9.0"},
-      {:mob_mishka,  "~> 0.1"}
+      {:mob_mishka,  "~> 0.2"}
 
   and every `<Mishka…>` composite works in your `~MOB` sigils — no
   `Components.register_all/0` in your `on_start/0`, no `config :mob,

@@ -24,7 +24,7 @@ Add to your Mob app's `mix.exs`:
 def deps do
   [
     {:mob,         "~> 0.9.0"},
-    {:mob_mishka,  "~> 0.1"}
+    {:mob_mishka,  "~> 0.2"}
   ]
 end
 ```
