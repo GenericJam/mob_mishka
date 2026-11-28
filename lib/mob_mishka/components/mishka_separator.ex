@@ -82,21 +82,26 @@ defmodule MobMishka.Components.MishkaSeparator do
 
   Not inertia. Two reasons:
 
-    1. **It is the only horizontal rule that works on iOS today.** A `:box` rule
-       needs the `Spacer` filler described under "Platform note" to have any
-       height at all there, and that workaround is worth carrying deliberately
-       rather than switching everyone onto silently.
-    2. **The two primitives are not pixel-identical, and the difference is not
-       zero.** At the same `thickness` the Divider paints two full rows plus one
-       at ~69%; the Box paints three full rows. The `:box` rule therefore reads a
-       shade heavier. That is a change of appearance, and no existing caller's
-       pixels may move — so it is opt-in.
+    1. **It was the default before `render` existed, and it works on both
+       platforms.** This reason used to be stronger: before mob 0.9.32 the
+       Divider was the only horizontal rule that worked on iOS, because a
+       `:box` rule needed the `Spacer` filler described below to have any
+       height there. 0.9.32 sizes a height-only Box, so `:box` works on iOS
+       too, and on mob master (next release, MOB-568) iOS draws `<Divider>` as
+       a filled rect `thickness` tall across the full width — the same
+       geometry as a `:box` rule. On iOS the two choices now draw alike; the
+       difference that remains is Android's, below.
+    2. **The two primitives are not pixel-identical on Android, and the
+       difference is not zero.** At the same `thickness` the Divider paints two
+       full rows plus one at ~69%; the Box paints three full rows. The `:box`
+       rule therefore reads a shade heavier. That is a change of appearance,
+       and no existing caller's pixels may move — so it is opt-in.
 
-  Worth saying plainly, though: the component is currently *inconsistent with
-  itself*. A vertical rule has always been a `Box`, so a horizontal and a
-  vertical rule sharing one `color` and one `thickness` render two different
-  greys. `render={:box}` is what makes them agree, and a future major version
-  should probably flip the default rather than keep the seam.
+  Worth saying plainly, though: on Android the component is currently
+  *inconsistent with itself*. A vertical rule has always been a `Box`, so a
+  horizontal and a vertical rule sharing one `color` and one `thickness` render
+  two different greys. `render={:box}` is what makes them agree, and a future
+  major version should probably flip the default rather than keep the seam.
 
   ## A rule has nothing to assert on without an `id`
 
@@ -109,33 +114,34 @@ defmodule MobMishka.Components.MishkaSeparator do
 
   ## Platform note
 
-  Every gap below is in the `mob` dependency rather than here — see
-  `IOS_TODO.md` items 11, 12 and 13 (item 1, below, is fixed in mob 0.9.32).
-  **Android is correct for all three
-  variants**, the hairline softness above excepted, and that one is Material's
-  behaviour rather than a bug.
+  **Android is correct for all three variants**, the hairline softness above
+  excepted, and that one is Material's behaviour rather than a bug.
 
-  On the defaults, only the plain rule is portable:
+  **iOS** had two gaps in the `mob` dependency, `IOS_TODO.md` items 11 and 12.
+  Both are fixed on mob master (next release, MOB-568); on mob 0.9.33 and
+  earlier they still apply:
 
-    * the **vertical** rule renders 1pt wide and **0pt tall**, i.e. invisible
-      (item 11). It is a Box with a `width` and `fill_height`, and iOS's
-      `MobBox` consults `fillHeight` only in the branch it takes when there is
-      *no* width. **`length` closes this**: given a number, the rule carries a
-      `width` *and* a `height`, which is the one branch `MobBox` does size on
-      both axes;
-    * the **labelled** variant's flanking lines come out as 1x1pt ticks (item
+    * the **vertical** rule rendered 1pt wide and **0pt tall**, i.e. invisible
+      (item 11). It is a Box with a `width` and `fill_height`, and `MobBox`
+      read `fill_height` only when the Box had *no* width. MOB-568 applies it
+      in the fixed-width branch too, so the rule fills the height its parent
+      gives it, as on Android. **`length`** still sets an explicit height, and
+      on an older mob it is the workaround: a rule with a `width` *and* a
+      `height` is sized on both axes;
+    * the **labelled** variant's flanking lines came out as 1x1pt ticks (item
       12). SwiftUI's `Divider()` draws along the axis of its container, so
-      inside the `Row` that centres the label it is a *vertical* hairline, then
-      clamped to `thickness` tall. **`render={:box}` closes this for this
-      component** — a `Box` has no opinion about its container's axis. It does
-      not close item 12 itself: a bare `<Divider>` inside a `<Row>` is still
-      wrong for every other caller, so that entry stays open;
-    * as of mob 0.9.32 iOS honours `weight` as "fill the rest of the row" but
-      ignores the ratio (item 13's proportional part is still open), splitting
-      weighted siblings evenly. Both lines carry `weight: 1`, so an even split
-      is the one wanted, and `render={:box}` shares the leftover between them
-      there too. Reasoned from reading `MobRootView.swift` (`MobLayoutWeight`),
-      not confirmed against a device from this repo.
+      inside the `Row` that centres the label it was a *vertical* hairline,
+      clamped to `thickness` tall. MOB-568 draws `<Divider>` as a filled rect
+      across the full width in any container, so the default `render` works
+      there. On an older mob, **`render={:box}`** is the workaround: a `Box`
+      has no opinion about its container's axis.
+
+  One iOS gap is still open (item 13): as of mob 0.9.33 iOS honours `weight` as
+  "fill the rest of the row" but ignores the ratio, splitting weighted siblings
+  evenly (proportional weights are MOB-569, in review). Both lines carry
+  `weight: 1`, so an even split is the one wanted here, with either `render`.
+  Reasoned from reading `MobRootView.swift` (`MobLayoutWeight`), not confirmed
+  against a device from this repo.
 
   ### The `Spacer` inside every `:box` rule
 
@@ -202,8 +208,8 @@ defmodule MobMishka.Components.MishkaSeparator do
   def line_ids(id) when is_binary(id), do: {id <> "-line-start", id <> "-line-end"}
 
   # `length` nil keeps the original shape — fill whatever height the parent
-  # gives. A number swaps `fill_height` for an explicit `height`, which is the
-  # only Box shape iOS sizes on both axes (IOS_TODO 11).
+  # gives. A number swaps `fill_height` for an explicit `height`; before mob's
+  # MOB-568 that was the only way iOS sized a vertical rule (IOS_TODO 11).
   defp vertical(color, thickness, nil),
     do: ~MOB(<Box width={thickness} fill_height={true} background={color} />)
 

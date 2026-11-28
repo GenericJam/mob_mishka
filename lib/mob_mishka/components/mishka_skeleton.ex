@@ -55,7 +55,8 @@ defmodule MobMishka.Components.MishkaSkeleton do
   > bar and its trailing spacer are two equally-flexible siblings in an `HStack`,
   > so the last line lands at ~50% whatever `last_line` says. The full-width bars
   > agree on both platforms — a lone flexible child gets 100% either way — which
-  > is exactly why this was easy to miss.
+  > is exactly why this was easy to miss. Proportional weights on iOS are
+  > MOB-569, in review; until a mob release carries it, this stays Android-only.
   >
   > A portable version would make the INSET rigid and the bar flexible
   > (`<Box weight={1.0}/>` then `<Box width={inset}/>`), but that turns

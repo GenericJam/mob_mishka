@@ -8,7 +8,7 @@ defmodule MobMishka.Components.MishkaSplitter do
   Compose reads `weight` as a ratio; the iOS renderer reads it only as "fill
   the rest", so two weighted siblings split evenly whatever their weights, and
   a proportional split built from weighted boxes would always land at 50/50 on
-  iOS. Instead the splitter
+  iOS (proportional weights on iOS are MOB-569, in review). Instead the splitter
   takes an explicit `extent` — the total width (or height) it has to divide —
   and computes each pane in dp from the percentage. `sizes/1` does that
   arithmetic and is public, so a screen that knows its own dimensions can ask
