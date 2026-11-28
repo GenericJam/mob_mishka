@@ -8,7 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
-Composite fixes from the iOS check (MOB-571). Everything below changes Android rendering too unless marked iOS. **Contains a breaking change (`MishkaTooltip`), so the next cut should be 0.2.0.**
+## [0.2.0] - 2026-11-27
+
+Composite fixes from the iOS check (MOB-571). Everything below changes Android rendering too unless marked iOS. **Breaking:** `MishkaTooltip` no longer closes on a tap outside it (below).
 
 ### Breaking
 - `MishkaTooltip` is no longer modal: **a tap outside an open tooltip no longer closes it.** Opt back in with `close_on_outside_tap={true}`. It used to pass `on_dismiss` to its anchored node whenever `on_open_change` was set, which on both platforms covers the page with a layer that swallows the next tap anywhere; so any open hint ate the next tap, and with two open a tap could toggle the other one. Without a handler the Android popup is also no longer focusable, and a closed tooltip no longer carries `on_tap` on its anchored node (`decisions/2026-11-27-tooltip-not-modal-by-default.md`).
