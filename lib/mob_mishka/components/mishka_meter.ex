@@ -19,8 +19,9 @@ defmodule MobMishka.Components.MishkaMeter do
   mob 0.9.32 the iOS renderer honours `weight` only as "fill the rest of the
   axis", so two weighted boxes split the track evenly whatever the value, and a
   hand-drawn gauge is proportional on Android but reads half full on iOS
-  (proportional weights on iOS are MOB-569, in review). That reasoning
-  survives for the **default**, and only for the default.
+  (proportional weights on iOS are merged on mob master as MOB-569, not yet in
+  a release). That reasoning survives for the **default**, and only for the
+  default.
   It missed that a gauge given an explicit `width` needs no `weight` at all —
   its fill is `width * ratio`, plain arithmetic — and that Material's own
   geometry is not always the geometry a design asks for. See "When the native

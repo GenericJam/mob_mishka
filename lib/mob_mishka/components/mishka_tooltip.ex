@@ -42,6 +42,12 @@ defmodule MobMishka.Components.MishkaTooltip do
   aside — and `side: :top` only ever meant "earlier in the stack". Nothing
   flipped and nothing clamped, because nothing in flow knows where the edge is.
 
+  On iOS the anchored node has existed since mob 0.8.3 (MOB-190), so the
+  bubble floats over the page there too rather than displacing it.
+  Up to mob 0.9.33 iOS measured the bubble as the whole window and clamped it
+  to the top-left corner; on mob master (next release, MOB-563) it sits
+  `side_offset` from its trigger as described above, as on Android.
+
   ## Leave it room
 
   Because the bubble takes no space in the page, nothing in the layout makes way

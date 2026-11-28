@@ -136,10 +136,11 @@ defmodule MobMishka.Components.MishkaSeparator do
       there. On an older mob, **`render={:box}`** is the workaround: a `Box`
       has no opinion about its container's axis.
 
-  One iOS gap is still open (item 13): as of mob 0.9.33 iOS honours `weight` as
-  "fill the rest of the row" but ignores the ratio, splitting weighted siblings
-  evenly (proportional weights are MOB-569, in review). Both lines carry
-  `weight: 1`, so an even split is the one wanted here, with either `render`.
+  One iOS gap is still open in a release (item 13): as of mob 0.9.33 iOS
+  honours `weight` as "fill the rest of the row" but ignores the ratio,
+  splitting weighted siblings evenly (proportional weights are merged on mob
+  master as MOB-569, not yet released). Both lines carry `weight: 1`, so an
+  even split is the one wanted here, with either `render`.
   Reasoned from reading `MobRootView.swift` (`MobLayoutWeight`), not confirmed
   against a device from this repo.
 

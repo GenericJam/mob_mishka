@@ -56,7 +56,8 @@ defmodule MobMishka.Components.MishkaSkeleton do
   > so the last line lands at ~50% whatever `last_line` says. The full-width bars
   > agree on both platforms — a lone flexible child gets 100% either way — which
   > is exactly why this was easy to miss. Proportional weights on iOS are
-  > MOB-569, in review; until a mob release carries it, this stays Android-only.
+  > merged on mob master as MOB-569; until a mob release carries it, this stays
+  > Android-only.
   >
   > A portable version would make the INSET rigid and the bar flexible
   > (`<Box weight={1.0}/>` then `<Box width={inset}/>`), but that turns
