@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Changed
+- Docs: iOS notes updated for the renderer fixes on mob master (next release; mob 0.9.33 and earlier still behave as before). `MishkaSeparator`: the vertical rule and the labelled variant's lines draw with the defaults (MOB-568, closing IOS_TODO 11 and 12), so `length` and `render={:box}` are only needed as workarounds on an older mob; `render={:box}` stays documented for Android's hairline. `Anchored`, `MishkaTooltip`, `MishkaPopover`, `MishkaPreviewCard` and `MishkaMenu.dropdown/4`: iOS panels sit against their trigger instead of the top-left corner (MOB-563). `MishkaCode`: iOS draws `"monospace"` as SF Mono (MOB-566). The arrow decision record notes that an iOS Column hugs (MOB-564). Weight notes still describe iOS's even split, which every released mob has; proportional weights are merged on mob master (MOB-569) but not yet in a release.
+
 ## [0.2.0] - 2026-11-27
 
 Composite fixes from the iOS check (MOB-571). Everything below changes Android rendering too unless marked iOS. **Breaking:** `MishkaTooltip` no longer closes on a tap outside it (below).

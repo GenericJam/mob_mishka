@@ -219,7 +219,10 @@ defmodule MobMishka.Components.MishkaMenu do
   usually needs and `MishkaPopover.panel/2` did not carry before this.
 
   The panel is drawn by the `:anchored` node on both platforms; the iOS
-  renderer has had it since mob 0.8.3 (MOB-190).
+  renderer has had it since mob 0.8.3 (MOB-190). Up to mob 0.9.33 iOS measured
+  the panel as the whole window and clamped it to the top-left corner; on mob
+  master (next release, MOB-563) it sits `side_offset` from the trigger, as on
+  Android.
 
   ## Options
 

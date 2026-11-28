@@ -142,9 +142,10 @@ defmodule MobMishka.Components.MishkaToolbar do
 
   As of mob 0.9.32 the iOS renderer honours `weight` as "fill the rest of the
   parent's axis", so an input's `weight: 1` box takes the remainder there too. It
-  ignores the ratio — two weighted siblings split evenly whatever their weights —
-  but every input carries the same `weight: 1`, so an even split is the one
-  wanted. The other gaps this section used to list are fixed in 0.9.32 as well:
+  ignores the ratio — two weighted siblings split evenly whatever their weights
+  (up to mob 0.9.33; MOB-569 on mob master divides by ratio) — but every input
+  carries the same `weight: 1`, so an even split is the one wanted. The other
+  gaps this section used to list are fixed in 0.9.32 as well:
   `MobBox` reads `fill_width` (`IOS_TODO.md` item 6), so a group cluster's
   `fill_width={false}` hugs its items; `Text` honours `max_lines` (item 9); and a
   Box with only a `height` is sized (item 1), which is what a vertical

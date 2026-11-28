@@ -451,9 +451,9 @@ defmodule MobMishka.Components.MishkaCalendar do
     }
 
     # The time cell is a fixed `width`, not `min_width`: no renderer reads
-    # `min_width`, so each cell took its own text's width (and on iOS, where a
-    # Column with no width fills, an even share of the row) and the rails and
-    # titles of consecutive rows did not line up.
+    # `min_width`, so each cell took its own text's width (and on iOS up to mob
+    # 0.9.33, where a Column with no width filled, an even share of the row) and
+    # the rails and titles of consecutive rows did not line up.
     ~MOB"""
     <Column fill_width={true}>
       <Row

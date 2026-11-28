@@ -73,8 +73,13 @@ defmodule MobMishka.Components.Anchored do
 
   Implemented since mob 0.8.3 (MOB-190): `mob_nif.m` decodes `anchored`, and
   `MobRootView.swift` mounts the panel (`MobAnchored.swift`) over the page as
-  Android does. Where iOS places the panel against the anchor is still being
-  fixed in mob.
+  Android does. Up to mob 0.9.33 iOS read the panel's size from its max-width
+  cap, so the panel measured as the whole window, fitted on no side and was
+  clamped to the top-left corner, where it stayed while the trigger scrolled
+  away. On mob master (next release, MOB-563) it measures the panel's content:
+  the panel sits `side_offset` from its anchor, flips when the requested side
+  has no room, scrolls with the page, and is clamped by the window's own safe
+  area, as on Android.
   """
 
   @type side :: :top | :right | :bottom | :left

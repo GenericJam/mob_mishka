@@ -4,10 +4,11 @@ defmodule MobMishka.Components.MishkaCode do
   blocks.
 
   Mob's `Text` takes a `font` prop that falls back to a system family name.
-  Android resolves `"monospace"` to the platform's mono face. iOS does not yet:
-  mob 0.9.32 logs "[mob/font] none of (monospace) resolved" and draws the system
-  font, so code is proportional there until mob resolves `"monospace"`
-  (MOB-566).
+  Android resolves `"monospace"` to the platform's mono face. iOS does on mob
+  master (next release, MOB-566), which draws the system font's monospaced
+  design (SF Mono). Up to mob 0.9.33 iOS logs
+  "[mob/font] none of (monospace) resolved" and draws the proportional system
+  font, so code is proportional there on those versions.
 
   ## Inline and block are different components wearing one name
 

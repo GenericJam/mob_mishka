@@ -90,8 +90,10 @@ defmodule MobMishka.Components.MishkaPreviewCard do
 
   iOS has had the anchored primitive too since mob 0.8.3 (MOB-190,
   `MobAnchored.swift`), so the card floats over the page there as well rather
-  than stacking after the trigger. Where iOS places the card against the
-  trigger is still being fixed in mob.
+  than stacking after the trigger. Up to mob 0.9.33 iOS clamped every open card
+  to the window's top-left corner; on mob master (next release, MOB-563) it
+  sits against the trigger as described above (see
+  `MobMishka.Components.Anchored`).
 
   ## Everything carries a testTag
 

@@ -20,9 +20,10 @@ defmodule MobMishka.Components.MishkaSegmentedControl do
   Equal-width segments need `weight`. Compose divides a Row by it; as of mob
   0.9.32 the iOS renderer honours it only as "fill the rest", splitting weighted
   siblings evenly and pinning each one's content to the leading edge of its
-  share. That was not available when this port was written, so segments size to
-  their labels by default — the same compromise the Tabs port makes, for the
-  same reason.
+  share (proportional weights on iOS are merged on mob master as MOB-569, not
+  yet in a release). That was not available when this port was written, so
+  segments size to their labels by default — the same compromise the Tabs port
+  makes, for the same reason.
 
   That makes `fill_width` load-bearing on both the track and each segment. A Box
   given neither a width nor the prop **fills its parent**, so an unguarded

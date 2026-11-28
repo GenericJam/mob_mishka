@@ -147,7 +147,8 @@ defmodule MobMishka.Components.MishkaProgress do
       ratio (`IOS_TODO.md` item 13), so the fill and the remainder `Spacer` are
       both just flexible and split the track evenly — the bar reads half full
       at every fraction between 0% and 100%. Give the bar a `width` on iOS
-      until iOS honours the ratio.
+      until a mob release honours the ratio there (MOB-569, merged on mob
+      master, not yet released).
 
   The `<Spacer size={height} />` inside a fill-width drawn track is an iOS
   workaround that predates mob 0.9.32, the same one `mishka_separator` and

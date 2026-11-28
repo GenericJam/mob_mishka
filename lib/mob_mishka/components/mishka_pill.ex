@@ -34,7 +34,7 @@ defmodule MobMishka.Components.MishkaPill do
   | `padding_top` / `padding_right` / `padding_bottom` / `padding_left` | spacing token / number | unset | One edge, overriding `padding` on that side only. |
   | `width` | number | unset | Exact width. Unset, the pill hugs its label. |
   | `height` | number | unset | Exact height. Unset, the pill hugs its label. |
-  | `weight` | number | unset | Share of a parent `Row`/`Column`, as on any Mob node — two pills at `1.0` and `2.0` split a row one to two on Android; iOS (mob 0.9.32) fills the rest but splits weighted siblings evenly. Read by the parent off the root, so it works with `height` and `align` for a button that takes the leftover width. |
+  | `weight` | number | unset | Share of a parent `Row`/`Column`, as on any Mob node — two pills at `1.0` and `2.0` split a row one to two on Android; iOS (mob 0.9.32 to 0.9.33) fills the rest but splits weighted siblings evenly (mob master divides by ratio, MOB-569, not yet released). Read by the parent off the root, so it works with `height` and `align` for a button that takes the leftover width. |
   | `fill_width` | boolean | `false` | Span the parent instead of hugging. |
   | `align` | `:center`, `:leading`, `:trailing`, … | unset (top-leading) | Where the content sits when `width` / `height` leave it room. |
   | `border_color` | color token / ARGB int | unset | Outline colour. Draws only alongside `border_width`. |

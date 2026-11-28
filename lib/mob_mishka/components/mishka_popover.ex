@@ -170,8 +170,9 @@ defmodule MobMishka.Components.MishkaPopover do
 
   iOS has had the anchored primitive too since mob 0.8.3 (MOB-190,
   `MobAnchored.swift`), so the panel floats over the page there as well rather
-  than stacking. Where iOS places the panel against the trigger is still being
-  fixed in mob.
+  than stacking. Up to mob 0.9.33 iOS clamped every open panel to the window's
+  top-left corner; on mob master (next release, MOB-563) it sits against the
+  trigger as described above (see `MobMishka.Components.Anchored`).
 
   **Documentation:** https://mishka.tools/chelekom/docs/mob/popover
   """
