@@ -11,16 +11,26 @@ defmodule MobMishka.Components.MishkaTextInput do
 
   ## The value is controlled
 
+<<<<<<< ours
   `value` is echoed back by the screen, and returning what was just typed is a
   no-op: the caret does not move. To replace the text (clearing it after a
   submit, say), assign the new `value`. Mob's renderers adopt a value the
   screen really changed: the Android bridge tells a stale echo of earlier
   typing from a new value on every render (MOB-309), and iOS takes a changed
   value whenever the field isn't focused. There is no epoch to bump.
+=======
+  `value` is echoed back by the screen, and an echo of what the field already
+  shows is a no-op: the caret does not move. To replace the text (clearing it
+  after a submit, say), assign the new `value`. On Android the bridge adopts a
+  value that differs from the field's text on each render the screen pushes;
+  iOS adopts a changed value whenever the field isn't focused. There is no
+  epoch to bump.
+>>>>>>> theirs
 
   ## Multiline
 
   `multiline: true` makes the field a paragraph three rows tall and keeps Return
+<<<<<<< ours
   for a newline instead of submitting; `on_submit` does not fire. An explicit
   `lines` sets the row count and wins over `multiline`; `lines: 1` is a
   single-line field.
@@ -29,6 +39,17 @@ defmodule MobMishka.Components.MishkaTextInput do
 
   The documented names are upstream's. Mob's text field spells three of them
   differently, so they are translated on the way to the node:
+=======
+  for a newline instead of submitting, so `on_submit` does not fire (on
+  Android a `return_key` puts an action key back, and that key submits). An
+  explicit `lines` sets the row count and wins over `multiline`; `lines: 1` is
+  a single-line field.
+
+  ## Prop names
+
+  Mob's text field spells three of these props differently, so they are
+  translated on the way to the node:
+>>>>>>> theirs
 
   * `keyboard_type` becomes `keyboard`, as a string (`:email` → `"email"`).
   * `font_family` becomes `font`.
