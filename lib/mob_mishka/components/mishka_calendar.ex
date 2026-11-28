@@ -307,6 +307,7 @@ defmodule MobMishka.Components.MishkaCalendar do
         padding_top={@pad_top}
         padding_bottom={@pad_bottom}
       >
+<<<<<<< ours
         <Text
           text={@label}
           font={@family}
@@ -314,6 +315,9 @@ defmodule MobMishka.Components.MishkaCalendar do
           text_color={@color}
           max_lines={1}
         />
+=======
+        <Text text={@label} font={@family} text_size={@size} text_color={@color} max_lines={1} />
+>>>>>>> theirs
       </Column>
     </Row>
     """
@@ -533,6 +537,7 @@ defmodule MobMishka.Components.MishkaCalendar do
     }
 
     ~MOB"""
+<<<<<<< ours
     <Text
       text={@duration}
       font={@family}
@@ -540,6 +545,9 @@ defmodule MobMishka.Components.MishkaCalendar do
       text_color={@color}
       max_lines={1}
     />
+=======
+    <Text text={@duration} font={@family} text_size={@size} text_color={@color} max_lines={1} />
+>>>>>>> theirs
     """
     |> scrub_nil([:font])
   end

@@ -121,8 +121,13 @@ defmodule MobMishka.Components.MishkaDockItem do
     |> drop_nil_family()
   end
 
+<<<<<<< ours
   # mob's Text reads `font`; the `font_family` / `active_font_family` props
   # name it the way upstream does.
+=======
+  # mob's Text reads `font`, never `font_family`, so the `font_family` /
+  # `active_font_family` props reach the glyph as `font`.
+>>>>>>> theirs
   defp drop_nil_family(%{props: %{font: nil}} = node),
     do: %{node | props: Map.delete(node.props, :font)}
 

@@ -419,10 +419,28 @@ defmodule MobMishka.Components.MishkaCalendarViewsTest do
       refute Enum.any?(nodes, &Map.has_key?(&1.props, :font_family))
     end
 
+<<<<<<< ours
     test "without one, no Text carries a nil font, which would block the theme's default font" do
       nodes = flatten(MishkaCalendar.calendar(%{weekday_labels: ~w(M T W T F S S)}))
 
       refute Enum.any?(nodes, &(Map.has_key?(&1.props, :font) and is_nil(&1.props.font)))
+=======
+    test "with no font set, no node carries a font key, so the theme's font applies" do
+      # A `font: nil` key is enough for the renderer to skip the theme's font.
+      lane = %{weekday: "MON", day: "9", blocks: [%{label: "09", height: 44}]}
+      row = %{time: "09:00", title: "Stand-up", duration: "1h"}
+
+      for props <- [
+            %{view: :month, weekday_labels: ~w(M T W T F S S)},
+            %{view: :week, lanes: [lane]},
+            %{view: :day, rows: [row]},
+            %{view: :agenda, sections: [%{label: "TODAY", items: [row]}]}
+          ] do
+        nodes = flatten(MishkaCalendar.calendar(props))
+
+        refute Enum.any?(nodes, &Map.has_key?(&1.props, :font)), "#{props.view} left a font key"
+      end
+>>>>>>> theirs
     end
   end
 
